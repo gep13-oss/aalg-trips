@@ -17,8 +17,9 @@ namespace AalgTrips.UITests
             await SignInAsync();
             await Page.GotoAsync(CruiseUrl);
 
-            // The seeded cruise has three stops, so three itinerary rows.
-            await Expect(Page.Locator(".itinerary-table tbody tr")).ToHaveCountAsync(3);
+            // The seeded cruise has three stops, so three itinerary stop rows (each
+            // may be followed by a photos row, so scope the count to the stop rows).
+            await Expect(Page.Locator(".itinerary-table tbody tr.itinerary-row")).ToHaveCountAsync(3);
 
             // All three stop names are shown, including the day at sea.
             var content = await Page.ContentAsync();

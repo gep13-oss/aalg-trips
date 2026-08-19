@@ -233,5 +233,88 @@ namespace AalgTrips.Models
         /// </summary>
         /// <returns>The absolute-or-root-relative URL of <c>cruises.json</c>.</returns>
         string CruisesUrl();
+
+        /// <summary>
+        /// Lists the original photo file names saved for a cruise stop (not
+        /// thumbnails).
+        /// </summary>
+        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="stopKey">The stop to enumerate.</param>
+        /// <returns>The photo file names.</returns>
+        IReadOnlyList<string> ListCruisePhotoFileNames(string cruiseId, string stopKey);
+
+        /// <summary>
+        /// Lists the generated thumbnail file names for a cruise stop.
+        /// </summary>
+        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="stopKey">The stop to enumerate.</param>
+        /// <returns>The thumbnail file names (e.g. <c>beach-190x127.jpg</c>).</returns>
+        IReadOnlyList<string> ListCruiseThumbnailFileNames(string cruiseId, string stopKey);
+
+        /// <summary>
+        /// Determines whether a photo exists for a cruise stop.
+        /// </summary>
+        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="stopKey">The stop to check.</param>
+        /// <param name="fileName">The photo file name.</param>
+        /// <returns><c>true</c> when the photo exists.</returns>
+        bool CruisePhotoExists(string cruiseId, string stopKey, string fileName);
+
+        /// <summary>
+        /// Saves an original photo's bytes into a cruise stop.
+        /// </summary>
+        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="stopKey">The stop to save into.</param>
+        /// <param name="fileName">The photo file name.</param>
+        /// <param name="content">A readable stream over the photo bytes.</param>
+        /// <returns>A task that completes when the photo is stored.</returns>
+        Task SaveCruisePhotoAsync(string cruiseId, string stopKey, string fileName, Stream content);
+
+        /// <summary>
+        /// Opens a stored cruise-stop photo for reading (for example to derive
+        /// thumbnails from the saved original).
+        /// </summary>
+        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="stopKey">The stop to read from.</param>
+        /// <param name="fileName">The photo file name.</param>
+        /// <returns>A readable stream the caller must dispose.</returns>
+        Stream OpenCruisePhoto(string cruiseId, string stopKey, string fileName);
+
+        /// <summary>
+        /// Saves a generated thumbnail's bytes into a cruise stop.
+        /// </summary>
+        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="stopKey">The stop to save into.</param>
+        /// <param name="thumbnailFileName">The thumbnail file name.</param>
+        /// <param name="content">A readable stream over the thumbnail bytes.</param>
+        /// <returns>A task that completes when the thumbnail is stored.</returns>
+        Task SaveCruiseThumbnailAsync(string cruiseId, string stopKey, string thumbnailFileName, Stream content);
+
+        /// <summary>
+        /// Deletes a cruise-stop photo and every thumbnail generated from it.
+        /// </summary>
+        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="stopKey">The stop to delete from.</param>
+        /// <param name="fileName">The photo file name.</param>
+        /// <returns>A task that completes when the photo and its thumbnails are removed.</returns>
+        Task DeleteCruisePhotoAsync(string cruiseId, string stopKey, string fileName);
+
+        /// <summary>
+        /// Gets the URL a cruise stop's original photo is served from.
+        /// </summary>
+        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="stopKey">The stop the photo belongs to.</param>
+        /// <param name="fileName">The photo file name.</param>
+        /// <returns>The root-relative URL of the photo.</returns>
+        string CruisePhotoUrl(string cruiseId, string stopKey, string fileName);
+
+        /// <summary>
+        /// Gets the URL a cruise stop's thumbnail is served from.
+        /// </summary>
+        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="stopKey">The stop the thumbnail belongs to.</param>
+        /// <param name="thumbnailFileName">The thumbnail file name.</param>
+        /// <returns>The absolute-or-root-relative URL of the thumbnail.</returns>
+        string CruiseThumbnailUrl(string cruiseId, string stopKey, string thumbnailFileName);
     }
 }

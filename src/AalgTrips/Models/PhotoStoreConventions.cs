@@ -99,6 +99,32 @@ namespace AalgTrips.Models
             return $"{MediaBase}/{CruisesFileName}";
         }
 
+        /// <summary>
+        /// Gets the URL a cruise stop's original photo is served from. Cruise photos
+        /// live under the cruises area (<c>cruises/{cruiseId}/{stopKey}/{file}</c>),
+        /// which the same authenticated media endpoint serves as any other store key.
+        /// </summary>
+        /// <param name="cruiseId">The cruise the photo belongs to.</param>
+        /// <param name="stopKey">The stop the photo belongs to.</param>
+        /// <param name="fileName">The photo file name.</param>
+        /// <returns>The root-relative media URL.</returns>
+        public static string CruisePhotoUrl(string cruiseId, string stopKey, string fileName)
+        {
+            return $"{MediaBase}/{CruisesFolder}/{Escape(cruiseId)}/{Escape(stopKey)}/{Escape(fileName)}";
+        }
+
+        /// <summary>
+        /// Gets the URL a cruise stop's thumbnail is served from.
+        /// </summary>
+        /// <param name="cruiseId">The cruise the thumbnail belongs to.</param>
+        /// <param name="stopKey">The stop the thumbnail belongs to.</param>
+        /// <param name="thumbnailFileName">The thumbnail file name.</param>
+        /// <returns>The root-relative media URL.</returns>
+        public static string CruiseThumbnailUrl(string cruiseId, string stopKey, string thumbnailFileName)
+        {
+            return $"{MediaBase}/{CruisesFolder}/{Escape(cruiseId)}/{Escape(stopKey)}/{ThumbnailFolder}/{Escape(thumbnailFileName)}";
+        }
+
         // Percent-encodes a single path segment (album id or file name) so it round
         // trips through the media endpoint's catch-all route back to the exact
         // store key. The separators between segments are added literally.

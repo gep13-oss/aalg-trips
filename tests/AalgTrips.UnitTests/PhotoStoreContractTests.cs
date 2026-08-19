@@ -13,6 +13,7 @@ namespace AalgTrips.UnitTests
     {
         private const string Album = "sample-trip";
         private const string Cruise = "sample-cruise";
+        private const string Stop = "rome";
 
         /// <summary>
         /// Creates a fresh, isolated store for a single test.
@@ -298,6 +299,104 @@ namespace AalgTrips.UnitTests
             });
 
             Assert.That(store.CruisesUrl(), Is.Not.Empty);
+        }
+
+        [Test]
+        public async Task Cruise_stop_photo_is_saved_listed_readable_and_has_a_url()
+        {
+            var store = CreateStore();
+            var bytes = Encoding.UTF8.GetBytes("cruise-photo-bytes");
+
+            await store.SaveCruisePhotoAsync(Cruise, Stop, "deck.jpg", new MemoryStream(bytes));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(store.CruisePhotoExists(Cruise, Stop, "deck.jpg"), Is.True);
+                Assert.That(store.ListCruisePhotoFileNames(Cruise, Stop), Does.Contain("deck.jpg"));
+                Assert.That(ReadAll(store.OpenCruisePhoto(Cruise, Stop, "deck.jpg")), Is.EqualTo(bytes));
+                Assert.That(store.CruisePhotoUrl(Cruise, Stop, "deck.jpg"), Is.Not.Empty);
+            });
+        }
+
+        [Test]
+        public async Task Cruise_stop_thumbnail_is_listed_and_has_a_url()
+        {
+            var store = CreateStore();
+
+            await store.SaveCruiseThumbnailAsync(Cruise, Stop, "deck-190x127.jpg", new MemoryStream(Encoding.UTF8.GetBytes("thumb")));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(store.ListCruiseThumbnailFileNames(Cruise, Stop), Does.Contain("deck-190x127.jpg"));
+                Assert.That(store.CruiseThumbnailUrl(Cruise, Stop, "deck-190x127.jpg"), Is.Not.Empty);
+            });
+        }
+
+        [Test]
+        public async Task Cruise_stop_photos_are_scoped_to_their_own_stop()
+        {
+            var store = CreateStore();
+
+            await store.SaveCruisePhotoAsync(Cruise, Stop, "deck.jpg", new MemoryStream(Encoding.UTF8.GetBytes("a")));
+            await store.SaveCruisePhotoAsync(Cruise, "santorini", "beach.jpg", new MemoryStream(Encoding.UTF8.GetBytes("b")));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(store.ListCruisePhotoFileNames(Cruise, Stop), Is.EqualTo(new[] { "deck.jpg" }));
+                Assert.That(store.ListCruisePhotoFileNames(Cruise, "santorini"), Is.EqualTo(new[] { "beach.jpg" }));
+            });
+        }
+
+        [Test]
+        public async Task Deleting_a_cruise_stop_photo_removes_it_and_only_its_own_thumbnails()
+        {
+            var store = CreateStore();
+            await store.SaveCruisePhotoAsync(Cruise, Stop, "deck.jpg", new MemoryStream(Encoding.UTF8.GetBytes("a")));
+            await store.SaveCruiseThumbnailAsync(Cruise, Stop, "deck-190x127.jpg", new MemoryStream(Encoding.UTF8.GetBytes("t1")));
+            await store.SaveCruiseThumbnailAsync(Cruise, Stop, "sunset-190x127.jpg", new MemoryStream(Encoding.UTF8.GetBytes("t2")));
+
+            await store.DeleteCruisePhotoAsync(Cruise, Stop, "deck.jpg");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(store.CruisePhotoExists(Cruise, Stop, "deck.jpg"), Is.False);
+                Assert.That(store.ListCruiseThumbnailFileNames(Cruise, Stop), Does.Not.Contain("deck-190x127.jpg"), "the photo's own thumbnail should go");
+                Assert.That(store.ListCruiseThumbnailFileNames(Cruise, Stop), Does.Contain("sunset-190x127.jpg"), "another photo's thumbnail must be left alone");
+            });
+        }
+
+        [Test]
+        public async Task Deleting_a_cruise_removes_its_stop_photos()
+        {
+            var store = CreateStore();
+            await store.WriteCruiseAsync(Cruise, new CruiseMetaData { DisplayName = "Sample" });
+            await store.SaveCruisePhotoAsync(Cruise, Stop, "deck.jpg", new MemoryStream(Encoding.UTF8.GetBytes("a")));
+            await store.SaveCruiseThumbnailAsync(Cruise, Stop, "deck-190x127.jpg", new MemoryStream(Encoding.UTF8.GetBytes("t")));
+
+            await store.DeleteCruiseAsync(Cruise);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(store.CruiseExists(Cruise), Is.False);
+                Assert.That(store.CruisePhotoExists(Cruise, Stop, "deck.jpg"), Is.False, "a deleted cruise takes its stop photos with it");
+                Assert.That(store.ListCruisePhotoFileNames(Cruise, Stop), Is.Empty);
+            });
+        }
+
+        [Test]
+        public async Task Renaming_a_cruise_moves_its_stop_photos_to_the_new_id()
+        {
+            var store = CreateStore();
+            await store.WriteCruiseAsync(Cruise, new CruiseMetaData { DisplayName = "Sample" });
+            await store.SaveCruisePhotoAsync(Cruise, Stop, "deck.jpg", new MemoryStream(Encoding.UTF8.GetBytes("a")));
+
+            await store.RenameCruiseAsync(Cruise, "renamed-cruise");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(store.CruisePhotoExists("renamed-cruise", Stop, "deck.jpg"), Is.True, "stop photos move with the cruise");
+                Assert.That(store.CruisePhotoExists(Cruise, Stop, "deck.jpg"), Is.False, "nothing should be left under the old id");
+            });
         }
 
         private static byte[] ReadAll(Stream stream)

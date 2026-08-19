@@ -346,6 +346,93 @@ namespace AalgTrips.Models
             return PhotoStoreConventions.CruisesUrl();
         }
 
+        /// <inheritdoc />
+        public IReadOnlyList<string> ListCruisePhotoFileNames(string cruiseId, string stopKey)
+        {
+            string prefix = CruiseStopPrefix(cruiseId, stopKey);
+            var names = new List<string>();
+
+            // A hierarchical listing returns the photos directly under the stop and a
+            // prefix for the thumbnail folder; taking the blobs and keeping the image
+            // files yields the originals.
+            foreach (var item in _container.GetBlobsByHierarchy(BlobTraits.None, BlobStates.None, "/", prefix, default))
+            {
+                if (item.IsBlob)
+                {
+                    string name = item.Blob.Name.Substring(prefix.Length);
+                    if (PhotoStoreConventions.IsImageFile(name))
+                    {
+                        names.Add(name);
+                    }
+                }
+            }
+
+            return names;
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<string> ListCruiseThumbnailFileNames(string cruiseId, string stopKey)
+        {
+            string prefix = CruiseStopThumbnailPrefix(cruiseId, stopKey);
+
+            return _container.GetBlobs(BlobTraits.None, BlobStates.None, prefix, default)
+                .Select(b => b.Name.Substring(prefix.Length))
+                .ToList();
+        }
+
+        /// <inheritdoc />
+        public bool CruisePhotoExists(string cruiseId, string stopKey, string fileName)
+        {
+            return _container.GetBlobClient(CruisePhotoKey(cruiseId, stopKey, fileName)).Exists();
+        }
+
+        /// <inheritdoc />
+        public async Task SaveCruisePhotoAsync(string cruiseId, string stopKey, string fileName, Stream content)
+        {
+            await _container.GetBlobClient(CruisePhotoKey(cruiseId, stopKey, fileName)).UploadAsync(content, overwrite: true);
+        }
+
+        /// <inheritdoc />
+        public Stream OpenCruisePhoto(string cruiseId, string stopKey, string fileName)
+        {
+            return _container.GetBlobClient(CruisePhotoKey(cruiseId, stopKey, fileName)).OpenRead();
+        }
+
+        /// <inheritdoc />
+        public async Task SaveCruiseThumbnailAsync(string cruiseId, string stopKey, string thumbnailFileName, Stream content)
+        {
+            await _container.GetBlobClient(CruiseThumbnailKey(cruiseId, stopKey, thumbnailFileName)).UploadAsync(content, overwrite: true);
+        }
+
+        /// <inheritdoc />
+        public async Task DeleteCruisePhotoAsync(string cruiseId, string stopKey, string fileName)
+        {
+            await _container.GetBlobClient(CruisePhotoKey(cruiseId, stopKey, fileName)).DeleteIfExistsAsync();
+
+            string prefix = CruiseStopThumbnailPrefix(cruiseId, stopKey);
+
+            foreach (var blob in _container.GetBlobs(BlobTraits.None, BlobStates.None, prefix, default).ToList())
+            {
+                string name = blob.Name.Substring(prefix.Length);
+                if (PhotoStoreConventions.ThumbnailBelongsTo(name, fileName))
+                {
+                    await _container.GetBlobClient(blob.Name).DeleteIfExistsAsync();
+                }
+            }
+        }
+
+        /// <inheritdoc />
+        public string CruisePhotoUrl(string cruiseId, string stopKey, string fileName)
+        {
+            return PhotoStoreConventions.CruisePhotoUrl(cruiseId, stopKey, fileName);
+        }
+
+        /// <inheritdoc />
+        public string CruiseThumbnailUrl(string cruiseId, string stopKey, string thumbnailFileName)
+        {
+            return PhotoStoreConventions.CruiseThumbnailUrl(cruiseId, stopKey, thumbnailFileName);
+        }
+
         private static string MetadataKey(string albumId)
         {
             return $"{albumId}/{PhotoStoreConventions.MetadataFileName}";
@@ -364,6 +451,26 @@ namespace AalgTrips.Models
         private static string CruiseMetadataKey(string cruiseId)
         {
             return $"{PhotoStoreConventions.CruisesFolder}/{cruiseId}/{PhotoStoreConventions.CruiseMetadataFileName}";
+        }
+
+        private static string CruiseStopPrefix(string cruiseId, string stopKey)
+        {
+            return $"{PhotoStoreConventions.CruisesFolder}/{cruiseId}/{stopKey}/";
+        }
+
+        private static string CruiseStopThumbnailPrefix(string cruiseId, string stopKey)
+        {
+            return $"{PhotoStoreConventions.CruisesFolder}/{cruiseId}/{stopKey}/{PhotoStoreConventions.ThumbnailFolder}/";
+        }
+
+        private static string CruisePhotoKey(string cruiseId, string stopKey, string fileName)
+        {
+            return $"{PhotoStoreConventions.CruisesFolder}/{cruiseId}/{stopKey}/{fileName}";
+        }
+
+        private static string CruiseThumbnailKey(string cruiseId, string stopKey, string thumbnailFileName)
+        {
+            return $"{PhotoStoreConventions.CruisesFolder}/{cruiseId}/{stopKey}/{PhotoStoreConventions.ThumbnailFolder}/{thumbnailFileName}";
         }
 
         private static string PhotoKey(string albumId, string fileName)

@@ -1317,6 +1317,29 @@ dialog.modal--wide {
     color: var(--muted);
 }
 
+/* Per-stop photo strip sits in a full-width row under the stop it belongs to. */
+.itinerary-photos-row > td {
+    padding-top: .2rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.stop-photos {
+    columns: 150px;
+    column-gap: 10px;
+    margin: 0 0 .6rem;
+}
+
+.stop-photos.photolist > .thumb {
+    margin-bottom: 10px;
+}
+
+.stop-photos__add {
+    width: auto;
+    min-width: 0;
+    padding: .35em .8em;
+    font-size: .85rem;
+}
+
 @media (max-width: 720px) {
     .stop-row__fields {
         grid-template-columns: repeat(2, 1fr);

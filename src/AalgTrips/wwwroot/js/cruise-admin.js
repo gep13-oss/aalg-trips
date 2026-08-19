@@ -80,6 +80,24 @@
         }
     });
 
+    // Per-stop photo upload. One shared modal is reused for every stop: clicking a
+    // stop's "Add photos" button stamps that stop's key into the form's hidden field
+    // and opens the dialog, so the upload posts against the right day.
+    const uploadDialog = document.querySelector("#uploadStopDialog");
+    const uploadKeyField = document.querySelector("#uploadStopKey");
+
+    if (uploadDialog && uploadKeyField) {
+        document.querySelectorAll("[data-upload-stop]").forEach((trigger) => {
+            trigger.addEventListener("click", () => {
+                uploadKeyField.value = trigger.getAttribute("data-upload-stop");
+
+                if (typeof uploadDialog.showModal === "function") {
+                    uploadDialog.showModal();
+                }
+            });
+        });
+    }
+
     // Confirm before deleting a cruise, mirroring the album delete guard.
     const deleteCruise = document.querySelector("#deletecruise");
 

@@ -13,6 +13,17 @@ namespace AalgTrips.Models
     /// </summary>
     public class CruiseStop
     {
+        /// <summary>
+        /// Gets or sets the stop's stable key — a filesystem-safe id, assigned once
+        /// when the stop is first saved and preserved through every later edit (the
+        /// itinerary editor round-trips it in a hidden field). It is the folder a
+        /// stop's photos live under (<c>cruises/{slug}/{Key}/</c>), so it must not
+        /// change when the stop is reordered, renamed or re-dated. Absent from older
+        /// metadata, where it deserializes to <c>null</c> until the next edit assigns
+        /// one.
+        /// </summary>
+        public string Key { get; set; }
+
         /// <summary>Gets or sets the date of this stop.</summary>
         public DateTime Date { get; set; }
 

@@ -195,6 +195,7 @@ namespace AalgTrips.UITests
                 {
                     new
                     {
+                        Key = "rome",
                         Date = "2025-07-15T00:00:00",
                         Name = "Rome",
                         AtSea = false,
@@ -206,6 +207,7 @@ namespace AalgTrips.UITests
                     },
                     new
                     {
+                        Key = "cruising",
                         Date = "2025-07-16T00:00:00",
                         Name = "Cruising",
                         AtSea = true,
@@ -217,6 +219,7 @@ namespace AalgTrips.UITests
                     },
                     new
                     {
+                        Key = "santorini",
                         Date = "2025-07-17T00:00:00",
                         Name = "Santorini",
                         AtSea = false,

@@ -9,6 +9,7 @@
     var linked = new HashSet<string>(stop?.Trips ?? new List<string>(), System.StringComparer.OrdinalIgnoreCase);
 }
 <fieldset class="stop-row" data-stop-row>
+    <input type="hidden" name="stops[@i].Key" value="@stop?.Key" />
     <div class="stop-row__fields">
         <label class="field stop-field stop-field--date">
             <span class="field__legend">Date</span>

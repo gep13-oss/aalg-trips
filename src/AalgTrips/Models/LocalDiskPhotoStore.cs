@@ -351,6 +351,107 @@ namespace AalgTrips.Models
             return PhotoStoreConventions.CruisesUrl();
         }
 
+        /// <inheritdoc />
+        public IReadOnlyList<string> ListCruisePhotoFileNames(string cruiseId, string stopKey)
+        {
+            string dir = CruiseStopDir(cruiseId, stopKey);
+
+            if (!Directory.Exists(dir))
+            {
+                return Array.Empty<string>();
+            }
+
+            return Directory.EnumerateFiles(dir)
+                .Select(Path.GetFileName)
+                .Where(PhotoStoreConventions.IsImageFile)
+                .ToList();
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<string> ListCruiseThumbnailFileNames(string cruiseId, string stopKey)
+        {
+            string dir = Path.Combine(CruiseStopDir(cruiseId, stopKey), PhotoStoreConventions.ThumbnailFolder);
+
+            if (!Directory.Exists(dir))
+            {
+                return Array.Empty<string>();
+            }
+
+            return Directory.EnumerateFiles(dir)
+                .Select(Path.GetFileName)
+                .ToList();
+        }
+
+        /// <inheritdoc />
+        public bool CruisePhotoExists(string cruiseId, string stopKey, string fileName)
+        {
+            return File.Exists(CruisePhotoPath(cruiseId, stopKey, fileName));
+        }
+
+        /// <inheritdoc />
+        public async Task SaveCruisePhotoAsync(string cruiseId, string stopKey, string fileName, Stream content)
+        {
+            string dir = CruiseStopDir(cruiseId, stopKey);
+            Directory.CreateDirectory(dir);
+
+            using var file = new FileStream(CruisePhotoPath(cruiseId, stopKey, fileName), FileMode.Create, FileAccess.Write);
+            await content.CopyToAsync(file);
+        }
+
+        /// <inheritdoc />
+        public Stream OpenCruisePhoto(string cruiseId, string stopKey, string fileName)
+        {
+            return File.OpenRead(CruisePhotoPath(cruiseId, stopKey, fileName));
+        }
+
+        /// <inheritdoc />
+        public async Task SaveCruiseThumbnailAsync(string cruiseId, string stopKey, string thumbnailFileName, Stream content)
+        {
+            string dir = Path.Combine(CruiseStopDir(cruiseId, stopKey), PhotoStoreConventions.ThumbnailFolder);
+            Directory.CreateDirectory(dir);
+
+            string path = SafeCombine(dir, thumbnailFileName);
+
+            using var file = new FileStream(path, FileMode.Create, FileAccess.Write);
+            await content.CopyToAsync(file);
+        }
+
+        /// <inheritdoc />
+        public Task DeleteCruisePhotoAsync(string cruiseId, string stopKey, string fileName)
+        {
+            string path = CruisePhotoPath(cruiseId, stopKey, fileName);
+
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+
+            string thumbnailDir = Path.Combine(CruiseStopDir(cruiseId, stopKey), PhotoStoreConventions.ThumbnailFolder);
+
+            if (Directory.Exists(thumbnailDir))
+            {
+                foreach (var thumbnail in Directory.EnumerateFiles(thumbnailDir)
+                    .Where(t => PhotoStoreConventions.ThumbnailBelongsTo(Path.GetFileName(t), fileName)))
+                {
+                    File.Delete(thumbnail);
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc />
+        public string CruisePhotoUrl(string cruiseId, string stopKey, string fileName)
+        {
+            return PhotoStoreConventions.CruisePhotoUrl(cruiseId, stopKey, fileName);
+        }
+
+        /// <inheritdoc />
+        public string CruiseThumbnailUrl(string cruiseId, string stopKey, string thumbnailFileName)
+        {
+            return PhotoStoreConventions.CruiseThumbnailUrl(cruiseId, stopKey, thumbnailFileName);
+        }
+
         private string AlbumDir(string albumId)
         {
             return SafeCombine(_root, albumId);
@@ -364,6 +465,16 @@ namespace AalgTrips.Models
         private string CruiseDir(string cruiseId)
         {
             return SafeCombine(CruisesRoot(), cruiseId);
+        }
+
+        private string CruiseStopDir(string cruiseId, string stopKey)
+        {
+            return SafeCombine(CruiseDir(cruiseId), stopKey);
+        }
+
+        private string CruisePhotoPath(string cruiseId, string stopKey, string fileName)
+        {
+            return SafeCombine(CruiseStopDir(cruiseId, stopKey), fileName);
         }
 
         private string PhotoPath(string albumId, string fileName)

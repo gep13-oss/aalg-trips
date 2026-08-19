@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using AalgTrips.Models;
 using Microsoft.AspNetCore.Http;
@@ -23,12 +25,16 @@ namespace AalgTrips.Pages
         private readonly CruiseCollection _cc;
         private readonly AlbumCollection _ac;
         private readonly IPhotoStore _store;
+        private readonly ImageProcessor _processor;
+        private readonly Dictionary<string, IReadOnlyList<CruisePhoto>> _stopPhotos =
+            new Dictionary<string, IReadOnlyList<CruisePhoto>>(StringComparer.OrdinalIgnoreCase);
 
-        public CruisesModel(CruiseCollection cc, AlbumCollection ac, IPhotoStore store)
+        public CruisesModel(CruiseCollection cc, AlbumCollection ac, IPhotoStore store, ImageProcessor processor)
         {
             _cc = cc;
             _ac = ac;
             _store = store;
+            _processor = processor;
         }
 
         public Cruise Cruise { get; private set; }
@@ -56,8 +62,125 @@ namespace AalgTrips.Pages
             }
 
             LinkedTrips = ResolveLinkedTrips(Cruise);
+            LoadStopPhotos(Cruise);
 
             return Page();
+        }
+
+        /// <summary>
+        /// Gets the photos saved against a stop, in file order. Never null; a stop
+        /// with no key yet (older metadata) or no photos returns an empty list.
+        /// </summary>
+        /// <param name="stopKey">The stop's stable key.</param>
+        /// <returns>The stop's photos.</returns>
+        public IReadOnlyList<CruisePhoto> StopPhotos(string stopKey)
+        {
+            if (!string.IsNullOrWhiteSpace(stopKey) && _stopPhotos.TryGetValue(stopKey, out var photos))
+            {
+                return photos;
+            }
+
+            return Array.Empty<CruisePhoto>();
+        }
+
+        public async Task<IActionResult> OnPostUploadStop(string name, string stopKey, ICollection<IFormFile> files)
+        {
+            if (RequireAdmin() is { } challenge)
+            {
+                return challenge;
+            }
+
+            if (!SafePathHelper.IsValidSegment(name) || !SafePathHelper.IsValidSegment(stopKey))
+            {
+                return BadRequest();
+            }
+
+            var cruise = _cc.Cruises.FirstOrDefault(c => c.Id.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+            if (cruise == null)
+            {
+                return NotFound();
+            }
+
+            // The photos are keyed by stop, so the stop must actually belong to this
+            // cruise — never trust the posted key to name an arbitrary folder.
+            if (!cruise.Stops.Any(s => stopKey.Equals(s.Key, StringComparison.OrdinalIgnoreCase)))
+            {
+                return NotFound();
+            }
+
+            foreach (var file in files.Where(f => PhotoStoreConventions.IsImageFile(f.FileName)))
+            {
+                string fileName = Path.GetFileName(file.FileName);
+
+                if (_store.CruisePhotoExists(name, stopKey, fileName))
+                {
+                    // Keep both when a name collides, tagging the duplicate with the
+                    // upload's hash, exactly as the album upload does.
+                    fileName = $"{Path.GetFileNameWithoutExtension(fileName)}.{file.GetHashCode()}{Path.GetExtension(fileName)}";
+                }
+
+                // Persist the original first, then derive thumbnails from the saved
+                // file, so a decode failure never leaves a half-written original.
+                using (var uploadStream = file.OpenReadStream())
+                {
+                    await _store.SaveCruisePhotoAsync(name, stopKey, fileName, uploadStream);
+                }
+
+                IReadOnlyList<GeneratedThumbnail> thumbnails;
+
+                using (var savedImage = _store.OpenCruisePhoto(name, stopKey, fileName))
+                {
+                    thumbnails = _processor.CreateThumbnails(savedImage, fileName);
+                }
+
+                if (thumbnails.Count == 0)
+                {
+                    // The bytes were not a decodable image despite the extension; drop
+                    // the saved original and skip it rather than 500.
+                    await _store.DeleteCruisePhotoAsync(name, stopKey, fileName);
+                    continue;
+                }
+
+                foreach (var thumbnail in thumbnails)
+                {
+                    using var thumbnailStream = new MemoryStream(thumbnail.Content);
+                    await _store.SaveCruiseThumbnailAsync(name, stopKey, thumbnail.FileName, thumbnailStream);
+                }
+            }
+
+            return new RedirectResult($"~/cruise/{WebUtility.UrlEncode(name).Replace('+', ' ')}/");
+        }
+
+        public async Task<IActionResult> OnPostDeleteStopPhoto(string name, string stopKey, string photo)
+        {
+            if (RequireAdmin() is { } challenge)
+            {
+                return challenge;
+            }
+
+            if (!SafePathHelper.IsValidSegment(name)
+                || !SafePathHelper.IsValidSegment(stopKey)
+                || !SafePathHelper.IsValidSegment(photo))
+            {
+                return BadRequest();
+            }
+
+            var cruise = _cc.Cruises.FirstOrDefault(c => c.Id.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+            if (cruise == null)
+            {
+                return NotFound();
+            }
+
+            if (!cruise.Stops.Any(s => stopKey.Equals(s.Key, StringComparison.OrdinalIgnoreCase)))
+            {
+                return NotFound();
+            }
+
+            await _store.DeleteCruisePhotoAsync(name, stopKey, photo);
+
+            return new RedirectResult($"~/cruise/{name}/");
         }
 
         public async Task<IActionResult> OnPostDelete(string name)
@@ -277,8 +400,10 @@ namespace AalgTrips.Pages
 
         // Cleans the posted itinerary: drops rows with no name, trims the names,
         // blanks empty arrive/depart times to null, clears coordinates on a day at
-        // sea (so it is never a route vertex), and tidies each row's trip slugs.
-        // Row order is preserved — the itinerary is the ordered spine.
+        // sea (so it is never a route vertex), tidies each row's trip slugs, and
+        // assigns each stop a stable key (generated when missing, kept when the
+        // editor round-tripped one). Row order is preserved — the itinerary is the
+        // ordered spine.
         private static List<CruiseStop> NormalizeStops(List<CruiseStop> stops)
         {
             if (stops == null)
@@ -287,6 +412,10 @@ namespace AalgTrips.Pages
             }
 
             var result = new List<CruiseStop>();
+
+            // The key is a folder id, so it must be unique within the cruise; a
+            // duplicate (a copied row, or a tampered field) is regenerated.
+            var usedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var stop in stops)
             {
@@ -297,6 +426,7 @@ namespace AalgTrips.Pages
 
                 result.Add(new CruiseStop
                 {
+                    Key = ResolveStopKey(stop.Key, stop.Name, usedKeys),
                     Date = stop.Date,
                     Name = stop.Name.Trim(),
                     AtSea = stop.AtSea,
@@ -314,9 +444,51 @@ namespace AalgTrips.Pages
             return result;
         }
 
+        // Keeps a valid, not-yet-used posted key; otherwise generates a fresh one
+        // from the stop name plus a short unique suffix. A key drives a folder path,
+        // so a tampered or empty value must never be trusted verbatim.
+        private static string ResolveStopKey(string providedKey, string name, HashSet<string> usedKeys)
+        {
+            string key = providedKey?.Trim();
+
+            if (string.IsNullOrEmpty(key) || !SafePathHelper.IsValidSegment(key) || !usedKeys.Add(key))
+            {
+                do
+                {
+                    key = GenerateStopKey(name);
+                }
+                while (!usedKeys.Add(key));
+            }
+
+            return key;
+        }
+
+        private static string GenerateStopKey(string name)
+        {
+            string baseSlug = SlugHelper.GenerateSlug(name);
+            string suffix = Guid.NewGuid().ToString("N").Substring(0, 8);
+
+            return string.IsNullOrEmpty(baseSlug) ? $"stop-{suffix}" : $"{baseSlug}-{suffix}";
+        }
+
         private static string BlankToNull(string value)
         {
             return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
+        private void LoadStopPhotos(Cruise cruise)
+        {
+            foreach (var stop in cruise.Stops)
+            {
+                if (string.IsNullOrWhiteSpace(stop.Key) || !SafePathHelper.IsValidSegment(stop.Key))
+                {
+                    continue;
+                }
+
+                _stopPhotos[stop.Key] = _store.ListCruisePhotoFileNames(cruise.Id, stop.Key)
+                    .Select(fileName => new CruisePhoto(_store, cruise.Id, stop.Key, fileName))
+                    .ToList();
+            }
         }
 
         private IReadOnlyList<Album> ResolveLinkedTrips(Cruise cruise)
