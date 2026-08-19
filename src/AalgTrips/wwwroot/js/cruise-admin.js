@@ -38,22 +38,26 @@
             }
 
             const atSea = row.querySelector("[data-atsea]");
-            const lat = row.querySelector("[data-lat]");
-            const long = row.querySelector("[data-long]");
+            const seaDisabled = [
+                row.querySelector("[data-lat]"),
+                row.querySelector("[data-long]"),
+                row.querySelector("[data-trips]"),
+            ];
 
             if (atSea) {
+                // A day at sea has no port, so it has no coordinates and no trips.
+                // Disable those inputs while it is ticked but keep their values, so
+                // unticking restores whatever was there rather than losing it. A
+                // disabled input is not submitted, and the server clears an at-sea
+                // stop's coordinates anyway, so nothing stale is saved.
                 const sync = () => {
-                    [lat, long].forEach((field) => {
-                        if (!field) {
-                            return;
-                        }
-
-                        field.disabled = atSea.checked;
-
-                        if (atSea.checked) {
-                            field.value = "";
+                    seaDisabled.forEach((field) => {
+                        if (field) {
+                            field.disabled = atSea.checked;
                         }
                     });
+
+                    row.classList.toggle("stop-row--sea", atSea.checked);
                 };
 
                 atSea.addEventListener("change", sync);

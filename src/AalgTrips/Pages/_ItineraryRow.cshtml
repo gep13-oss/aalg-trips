@@ -41,7 +41,7 @@
         </label>
         <label class="field stop-field stop-field--trips">
             <span class="field__legend">Trips visited</span>
-            <select name="stops[@i].Trips" multiple size="3">
+            <select name="stops[@i].Trips" multiple size="3" data-trips>
                 @foreach (var album in Model.Albums)
                 {
                     <option value="@album.Id" selected="@linked.Contains(album.Id)">@album.DisplayName</option>

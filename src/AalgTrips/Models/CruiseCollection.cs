@@ -138,6 +138,7 @@ namespace AalgTrips.Models
             {
                 Slug = cruise.Id,
                 Name = cruise.DisplayName,
+                Color = cruise.RouteColor,
                 Ports = cruise.Ports
                     .Select(s => new CruisePort
                     {

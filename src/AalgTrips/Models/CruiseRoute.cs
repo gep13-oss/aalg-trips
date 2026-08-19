@@ -19,6 +19,12 @@ namespace AalgTrips.Models
         public string Name { get; set; }
 
         /// <summary>
+        /// Gets or sets the colour the route line, connectors and port pins are drawn
+        /// in (a CSS hex colour), so cruises sharing ports are distinguishable.
+        /// </summary>
+        public string Color { get; set; }
+
+        /// <summary>
         /// Gets or sets the cruise's ports in itinerary order — the vertices of the
         /// route line. Days at sea are not included.
         /// </summary>

@@ -30,15 +30,22 @@
         tooltipAnchor: [0, -10],
     });
 
-    // A cruise port's pin: a small square CSS marker (styled in site.css) that reads
-    // as a waypoint on the route rather than a trip. Also a local divIcon, no CDN.
-    const portIcon = L.divIcon({
-        className: "port-pin",
-        html: "<span class=\"port-pin__dot\"></span>",
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
-        tooltipAnchor: [0, -8],
-    });
+    // The route colour a cruise falls back to when it has not chosen one.
+    const defaultRouteColor = "#0e6e78";
+
+    // A cruise port's pin: a small numbered CSS marker (styled in site.css) that
+    // reads as a numbered waypoint on the route rather than a trip. A local divIcon,
+    // no CDN; the sequence number and the cruise's route colour are stamped in per
+    // port so the visit order and which cruise it belongs to are both clear.
+    function portIconFor(sequence, color) {
+        return L.divIcon({
+            className: "port-pin",
+            html: "<span class=\"port-pin__num\" style=\"background:" + color + "\">" + sequence + "</span>",
+            iconSize: [22, 22],
+            iconAnchor: [11, 11],
+            tooltipAnchor: [0, -11],
+        });
+    }
 
     const map = L.map(mapElement);
 
@@ -164,22 +171,23 @@
         cruiseRoutes.forEach((cruise) => {
             const ports = Array.isArray(cruise.Ports) ? cruise.Ports : [];
             const line = ports.map((port) => [port.Lat, port.Long]);
+            const color = cruise.Color || defaultRouteColor;
 
             if (line.length >= 2) {
                 L.polyline(line, {
                     className: "cruise-route",
-                    color: "#0e6e78",
+                    color: color,
                     weight: 3,
                     opacity: 0.85,
                 }).addTo(cruiseLayer);
             }
 
-            ports.forEach((port) => {
+            ports.forEach((port, index) => {
                 const position = [port.Lat, port.Long];
                 cruisePoints.push(position);
 
-                L.marker(position, { icon: portIcon })
-                    .bindTooltip(portTooltip(cruise, port), { direction: "top", offset: [0, -8] })
+                L.marker(position, { icon: portIconFor(index + 1, color) })
+                    .bindTooltip(portTooltip(cruise, port), { direction: "top", offset: [0, -11] })
                     .on("click", () => {
                         window.location.href = "cruise/" + cruise.Slug;
                     })
@@ -191,7 +199,7 @@
                     if (tripPosition) {
                         L.polyline([position, tripPosition], {
                             className: "cruise-connector",
-                            color: "#0e6e78",
+                            color: color,
                             weight: 1.5,
                             opacity: 0.6,
                             dashArray: "3 6",

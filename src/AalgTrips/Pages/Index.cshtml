@@ -20,7 +20,7 @@
 
 <div id="admin" class="page-actions" if-authorized>
     <button type="button" class="btn btn--primary" data-open-dialog="#addTripDialog">Add trip</button>
-    <button type="button" class="btn" data-open-dialog="#addCruiseDialog">Add cruise</button>
+    <button type="button" class="btn btn--primary" data-open-dialog="#addCruiseDialog">Add cruise</button>
 
     <dialog id="addTripDialog" class="modal" aria-label="New trip">
         <form class="trip-form modal__form" method="post" action="~/album/new/create/">
@@ -77,6 +77,10 @@
             <div class="field field--date">
                 <label for="cruiseEnd">Returns</label>
                 <input type="date" name="endDate" id="cruiseEnd" required />
+            </div>
+            <div class="field field--color">
+                <label for="cruiseColor">Route colour</label>
+                <input type="color" name="routeColor" id="cruiseColor" value="#0e6e78" />
             </div>
             <div class="field field--notes">
                 <label for="cruiseDescription">Notes</label>

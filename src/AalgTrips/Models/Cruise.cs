@@ -13,11 +13,15 @@ namespace AalgTrips.Models
     /// </summary>
     public class Cruise
     {
+        /// <summary>The route colour used when a cruise has not chosen one.</summary>
+        public const string DefaultRouteColor = "#0e6e78";
+
         public Cruise(string id, CruiseMetaData metaData)
         {
             Id = id;
             Stops = metaData?.Stops ?? new List<CruiseStop>();
             People = metaData?.People ?? new List<string>();
+            RouteColor = string.IsNullOrWhiteSpace(metaData?.RouteColor) ? DefaultRouteColor : metaData.RouteColor;
 
             if (metaData != null)
             {
@@ -37,6 +41,12 @@ namespace AalgTrips.Models
         public DateTime StartDate { get; }
 
         public DateTime EndDate { get; }
+
+        /// <summary>
+        /// Gets the colour the cruise's route is drawn in on the map. Never null or
+        /// blank — a cruise with no chosen colour uses <see cref="DefaultRouteColor"/>.
+        /// </summary>
+        public string RouteColor { get; }
 
         /// <summary>
         /// Gets the people who were on the cruise (free-text names). Never null; a

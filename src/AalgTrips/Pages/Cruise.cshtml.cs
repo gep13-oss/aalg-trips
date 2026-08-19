@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using AalgTrips.Models;
 using Microsoft.AspNetCore.Http;
@@ -203,7 +204,7 @@ namespace AalgTrips.Pages
             return new RedirectResult("~/");
         }
 
-        public async Task<IActionResult> OnPostCreate(string name, string description, string startDate, string endDate, List<string> people, List<CruiseStop> stops)
+        public async Task<IActionResult> OnPostCreate(string name, string description, string startDate, string endDate, string routeColor, List<string> people, List<CruiseStop> stops)
         {
             if (RequireAdmin() is { } challenge)
             {
@@ -242,6 +243,7 @@ namespace AalgTrips.Pages
                 Description = description,
                 StartDate = start,
                 EndDate = end,
+                RouteColor = NormalizeColor(routeColor),
                 People = NormalizePeople(people),
                 Stops = NormalizeStops(stops),
             };
@@ -254,7 +256,7 @@ namespace AalgTrips.Pages
             return new RedirectResult($"~/cruise/{slug}/");
         }
 
-        public async Task<IActionResult> OnPostEdit([FromRoute(Name = "name")] string slug, string name, string description, string startDate, string endDate, List<string> people, List<CruiseStop> stops)
+        public async Task<IActionResult> OnPostEdit([FromRoute(Name = "name")] string slug, string name, string description, string startDate, string endDate, string routeColor, List<string> people, List<CruiseStop> stops)
         {
             if (RequireAdmin() is { } challenge)
             {
@@ -288,6 +290,7 @@ namespace AalgTrips.Pages
                 Description = description,
                 StartDate = start,
                 EndDate = end,
+                RouteColor = NormalizeColor(routeColor),
                 People = NormalizePeople(people),
                 Stops = NormalizeStops(stops),
             };
@@ -345,6 +348,7 @@ namespace AalgTrips.Pages
                 Description = existing.Description,
                 StartDate = existing.StartDate,
                 EndDate = existing.EndDate,
+                RouteColor = existing.RouteColor,
                 People = existing.People.ToList(),
                 Stops = existing.Stops.ToList(),
             };
@@ -441,7 +445,26 @@ namespace AalgTrips.Pages
                 });
             }
 
-            return result;
+            // A cruise itinerary is chronological, so order the stops by date (a
+            // stable sort keeps the entered order for any that share a date). This is
+            // also the order the map route is drawn in, so a stop added out of order
+            // still lands in the right place.
+            return result.OrderBy(s => s.Date).ToList();
+        }
+
+        // Accepts a posted route colour only if it is a valid #rgb / #rrggbb hex
+        // value (the native colour input always posts one); anything else falls back
+        // to the default so a bad value can never reach the map's stroke.
+        private static string NormalizeColor(string routeColor)
+        {
+            string value = routeColor?.Trim();
+
+            if (!string.IsNullOrEmpty(value) && Regex.IsMatch(value, "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"))
+            {
+                return value.ToLowerInvariant();
+            }
+
+            return Cruise.DefaultRouteColor;
         }
 
         // Keeps a valid, not-yet-used posted key; otherwise generates a fresh one

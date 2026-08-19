@@ -25,6 +25,14 @@ namespace AalgTrips.Models
         public DateTime EndDate { get; set; }
 
         /// <summary>
+        /// Gets or sets the colour the cruise's route is drawn in on the home map (a
+        /// CSS hex colour, e.g. <c>#0e6e78</c>), so cruises that share ports can be
+        /// told apart. Absent from older metadata, where it deserializes to
+        /// <c>null</c> and falls back to the default route colour.
+        /// </summary>
+        public string RouteColor { get; set; }
+
+        /// <summary>
         /// Gets or sets the people who were on the cruise (free-text names, as on an
         /// album). Absent from older metadata, where it deserializes to <c>null</c>
         /// and is treated as an empty list.

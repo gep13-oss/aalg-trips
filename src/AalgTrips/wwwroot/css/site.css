@@ -177,20 +177,30 @@ img {
     gap: .5ch;
     font: 600 .95rem/1 var(--font-body);
     padding: .72em 1.15em;
-    border: 1px solid transparent;
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--line);
     border-radius: var(--radius-sm);
     cursor: pointer;
     text-decoration: none;
     transition: background .15s ease, border-color .15s ease, transform .05s ease;
 }
 
+/* Every button darkens on hover; the specific variants below tune the colour. */
+.btn:hover {
+    background: var(--accent-tint);
+    border-color: var(--muted);
+}
+
 .btn--primary {
     background: var(--accent);
     color: #fff;
+    border-color: transparent;
 }
 
 .btn--primary:hover {
     background: var(--accent-deep);
+    border-color: transparent;
 }
 
 .btn--ghost {
@@ -200,6 +210,7 @@ img {
 }
 
 .btn--ghost:hover {
+    background: var(--accent-tint);
     border-color: var(--muted);
 }
 
@@ -230,10 +241,11 @@ img {
 }
 
 .field input,
-.field textarea {
+.field textarea,
+.field select {
     font: 1rem/1.4 var(--font-body);
     color: var(--ink);
-    background: var(--surface);
+    background: #fff;
     border: 1px solid var(--line);
     border-radius: var(--radius-sm);
     padding: .58em .7em;
@@ -252,10 +264,26 @@ img {
 }
 
 .field input:focus-visible,
-.field textarea:focus-visible {
+.field textarea:focus-visible,
+.field select:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 1px;
     border-color: var(--accent);
+}
+
+/* A disabled input (a day-at-sea's coordinates and trips) reads as inactive. */
+.field input:disabled,
+.field select:disabled {
+    background: var(--paper);
+    color: var(--muted);
+    cursor: not-allowed;
+}
+
+/* The native colour picker: keep it field-height but let the swatch fill it. */
+.field--color input {
+    height: 2.7rem;
+    padding: .25rem;
+    cursor: pointer;
 }
 
 /* Checkbox field (e.g. "Castle visited") — a horizontal label, not the stacked
@@ -460,7 +488,8 @@ dialog.modal::backdrop {
 .trip-form .field--place,
 .trip-form .field--date,
 .trip-form .field--lat,
-.trip-form .field--long {
+.trip-form .field--long,
+.trip-form .field--color {
     grid-column: span 3;
 }
 
@@ -539,14 +568,17 @@ dialog.modal::backdrop {
     border: 0;
 }
 
-.port-pin__dot {
-    display: block;
-    width: 14px;
-    height: 14px;
-    border-radius: 3px;
+.port-pin__num {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
     background: var(--accent);
     border: 2px solid #fff;
     box-shadow: 0 1px 4px rgba(21, 39, 44, .45);
+    color: #fff;
+    font: 700 11px/1 var(--font-body);
 }
 
 /* The cruise route line and its dotted trip connectors (Leaflet SVG paths tagged
@@ -1286,6 +1318,20 @@ dialog.modal--wide {
     justify-self: end;
     width: auto;
     min-width: 0;
+    color: #b23b2e;
+    border-color: #e3cbc6;
+}
+
+.stop-row__remove:hover {
+    background: #f6e7e4;
+    border-color: #b23b2e;
+}
+
+/* A day-at-sea row dims its now-inactive coordinate and trip fields. */
+.stop-row--sea .stop-field--lat,
+.stop-row--sea .stop-field--long,
+.stop-row--sea .stop-field--trips {
+    opacity: .55;
 }
 
 /* Cruise detail — itinerary table. */
@@ -1364,6 +1410,11 @@ dialog.modal--wide {
     min-width: 0;
     padding: .35em .8em;
     font-size: .85rem;
+}
+
+/* The home "Cruises" section sits below the trips with clear breathing room. */
+.cruises {
+    margin-top: 3rem;
 }
 
 /* Home "Cruises" cards reuse .trip-card; a cruise with no linked-trip cover shows

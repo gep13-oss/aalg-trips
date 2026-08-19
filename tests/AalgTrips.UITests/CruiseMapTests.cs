@@ -34,6 +34,7 @@ namespace AalgTrips.UITests
                 {
                     Slug = "med-cruise",
                     Name = "Med Cruise",
+                    Color = "#e11d48",
                     Ports = new[]
                     {
                         new { Lat = 41.90, Long = 12.50, Name = "Rome", Date = "15 Jul 2025", Arrive = (string?)null, Depart = "18:00", Trips = new[] { "colosseum" } },
@@ -50,6 +51,13 @@ namespace AalgTrips.UITests
 
             // Only the first port links a trip, so exactly one dotted connector.
             await Expect(Page.Locator("path.cruise-connector")).ToHaveCountAsync(1);
+
+            // The route is drawn in the cruise's chosen colour.
+            await Expect(Page.Locator("path.cruise-route")).ToHaveAttributeAsync("stroke", "#e11d48");
+
+            // The port pins are numbered in visit order.
+            await Expect(Page.Locator(".port-pin__num").Nth(0)).ToHaveTextAsync("1");
+            await Expect(Page.Locator(".port-pin__num").Nth(1)).ToHaveTextAsync("2");
         }
 
         [Test]

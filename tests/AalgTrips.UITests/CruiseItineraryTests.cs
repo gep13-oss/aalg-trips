@@ -34,6 +34,49 @@ namespace AalgTrips.UITests
         }
 
         [Test]
+        public async Task Stops_are_ordered_by_date_regardless_of_entry_order()
+        {
+            await SignInAsync();
+
+            var title = "Ordering Cruise " + System.Guid.NewGuid().ToString("N");
+            string? slug = null;
+
+            try
+            {
+                await Page.GotoAsync(BaseUrl + "/");
+                await OpenAddCruiseModalAsync();
+                await Page.FillAsync("#cruiseName", title);
+                await Page.FillAsync("#cruiseStart", "2025-07-15");
+                await Page.FillAsync("#cruiseEnd", "2025-07-22");
+
+                // Add the later stop first, then an earlier one — out of date order.
+                await Page.ClickAsync("#addCruiseDialog [data-add-stop]");
+                await Page.FillAsync("input[name='stops[0].Date']", "2025-07-20");
+                await Page.FillAsync("input[name='stops[0].Name']", "Naples");
+
+                await Page.ClickAsync("#addCruiseDialog [data-add-stop]");
+                await Page.FillAsync("input[name='stops[1].Date']", "2025-07-16");
+                await Page.FillAsync("input[name='stops[1].Name']", "Rome");
+
+                await Page.ClickAsync("#newcruise");
+                await Page.WaitForURLAsync(new Regex("/cruise/[^/]+/$"));
+                slug = Regex.Match(Page.Url, "/cruise/([^/]+)/").Groups[1].Value;
+
+                // The saved itinerary is chronological: Rome (16th) before Naples (20th).
+                var ports = Page.Locator(".itinerary-row .itinerary-port");
+                await Expect(ports.Nth(0)).ToContainTextAsync("Rome");
+                await Expect(ports.Nth(1)).ToContainTextAsync("Naples");
+            }
+            finally
+            {
+                if (slug != null)
+                {
+                    await DeleteCruiseAsync(slug);
+                }
+            }
+        }
+
+        [Test]
         public async Task A_cruise_stop_can_link_a_trip_album()
         {
             await SignInAsync();
