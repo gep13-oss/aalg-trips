@@ -1,0 +1,47 @@
+@using System
+@using System.Linq
+@using AalgTrips.Models
+@model Cruise
+@inject AlbumCollection ac
+@{
+    // Resolve the cruise's linked trips against the album catalogue: the cover is
+    // the first linked trip that has a cover photo, and the trip count is how many
+    // linked slugs still resolve to an album.
+    var linkedAlbums = Model.Stops
+        .SelectMany(s => s.Trips ?? Enumerable.Empty<string>())
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Select(slug => ac.Albums.FirstOrDefault(a => a.Id.Equals(slug, StringComparison.OrdinalIgnoreCase)))
+        .Where(a => a != null)
+        .ToList();
+
+    var coverAlbum = linkedAlbums.FirstOrDefault(a => a.CoverPhoto != null);
+    var portCount = Model.Ports.Count;
+    var tripCount = linkedAlbums.Count;
+}
+<a class="trip-card cruise-card" href="@Model.Link">
+    <div class="trip-card__media">
+        @if (coverAlbum != null)
+        {
+            <img photo="@coverAlbum.CoverPhoto" type="Cover" />
+        }
+        else
+        {
+            <div class="trip-card__placeholder cruise-card__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor" focusable="false">
+                    <path d="M3 15h18l-2 5H5l-2-5Zm9-13 6 3v7H6V5l6-3Zm0 2.2L8 6v4h8V6l-4-1.8Z" />
+                </svg>
+            </div>
+        }
+    </div>
+    <div class="trip-card__body">
+        <h3 class="trip-card__title">@Model.DisplayName</h3>
+        <p class="trip-card__dossier">
+            <span class="date">@Model.StartDate.ToString("d MMM yyyy").ToUpperInvariant() &ndash; @Model.EndDate.ToString("d MMM yyyy").ToUpperInvariant()</span>
+        </p>
+        <p class="cruise-card__counts">@portCount port@(portCount == 1 ? "" : "s") · @tripCount trip@(tripCount == 1 ? "" : "s")</p>
+        @if (Model.People.Count > 0)
+        {
+            <p class="trip-card__people"><span class="trip-card__people-label">Who</span> @string.Join(", ", Model.People)</p>
+        }
+    </div>
+</a>

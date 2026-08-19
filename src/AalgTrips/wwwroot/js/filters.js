@@ -12,8 +12,11 @@
 
     filters.hidden = false;
 
-    const cards = Array.from(document.querySelectorAll(".trip-card"));
-    const countEl = document.querySelector(".section-head__count");
+    // Scope to the Trips section only: cruise cards reuse .trip-card for styling but
+    // live in their own section and must not be hidden or counted by the trip
+    // filters (how cruises interact with the filters is a later decision).
+    const cards = Array.from(document.querySelectorAll(".trips .trip-card"));
+    const countEl = document.querySelector(".trips .section-head__count");
     const emptyEl = document.getElementById("tripsEmpty");
     const castleBox = filters.querySelector(".filter-castle");
     const personBoxes = Array.from(filters.querySelectorAll(".filter-person"));

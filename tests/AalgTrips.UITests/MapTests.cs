@@ -38,8 +38,10 @@ namespace AalgTrips.UITests
             await BlockTilesAsync();
             await Page.GotoAsync(BaseUrl + "/");
 
-            // One seeded album with lat/long -> exactly one Leaflet marker icon.
-            await Expect(Page.Locator(".leaflet-marker-icon")).ToHaveCountAsync(1);
+            // One seeded album with lat/long -> exactly one Leaflet *image* marker.
+            // Scope to img markers because a cruise route's port pins are divIcon
+            // markers (also .leaflet-marker-icon) drawn on the same map.
+            await Expect(Page.Locator("img.leaflet-marker-icon")).ToHaveCountAsync(1);
         }
 
         [Test]

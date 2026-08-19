@@ -532,6 +532,32 @@ dialog.modal::backdrop {
     box-shadow: 0 1px 4px rgba(21, 39, 44, .45);
 }
 
+/* A cruise port's map pin (Leaflet divIcon from map.js): a teal square that reads
+   as a route waypoint rather than a trip. Local CSS only, no asset. */
+.port-pin {
+    background: none;
+    border: 0;
+}
+
+.port-pin__dot {
+    display: block;
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    background: var(--accent);
+    border: 2px solid #fff;
+    box-shadow: 0 1px 4px rgba(21, 39, 44, .45);
+}
+
+/* The cruise route line and its dotted trip connectors (Leaflet SVG paths tagged
+   with a className from map.js); most of the stroke styling is set inline on the
+   path, this just softens the joins. */
+.cruise-route,
+.cruise-connector {
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
 /* Hover tooltip on a map pin: trip name over a muted date · photo-count line. */
 .map-tip {
     display: flex;
@@ -1338,6 +1364,27 @@ dialog.modal--wide {
     min-width: 0;
     padding: .35em .8em;
     font-size: .85rem;
+}
+
+/* Home "Cruises" cards reuse .trip-card; a cruise with no linked-trip cover shows
+   a ship glyph centred in the media panel instead. */
+.cruise-card__counts {
+    margin: .15rem 0 0;
+    font: 600 .7rem/1.4 var(--font-mono);
+    letter-spacing: .04em;
+    color: var(--muted);
+}
+
+.cruise-card__icon {
+    display: grid;
+    place-items: center;
+    color: var(--accent);
+}
+
+.cruise-card__icon svg {
+    width: 44px;
+    height: 44px;
+    opacity: .8;
 }
 
 @media (max-width: 720px) {

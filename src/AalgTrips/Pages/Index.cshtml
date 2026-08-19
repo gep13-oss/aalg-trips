@@ -151,6 +151,22 @@ else
     </section>
 }
 
+@if (cc.Cruises.Count > 0)
+{
+    <section class="cruises">
+        <div class="section-head">
+            <h2 class="section-head__title">Cruises</h2>
+            <span class="section-head__count">@cc.Cruises.Count cruise@(cc.Cruises.Count == 1 ? "" : "s")</span>
+        </div>
+        <div class="trip-grid">
+            @foreach (var cruise in cc.Cruises)
+            {
+                <partial name="_CruiseCard" model="cruise" />
+            }
+        </div>
+    </section>
+}
+
 @section head {
     <link rel="stylesheet" href="/lib/leaflet/leaflet.css" />
     <link rel="stylesheet" href="/lib/leaflet.markercluster/MarkerCluster.css" />

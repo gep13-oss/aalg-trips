@@ -58,7 +58,7 @@ namespace AalgTrips.UITests
 
                 await Expect(CardFor(ameliaSlug)).ToBeVisibleAsync();
                 await Expect(CardFor(garySlug)).ToBeHiddenAsync();
-                await Expect(Page.Locator(".section-head__count")).ToHaveTextAsync("1 trip");
+                await Expect(Page.Locator(".trips .section-head__count")).ToHaveTextAsync("1 trip");
             }
             finally
             {
@@ -142,7 +142,7 @@ namespace AalgTrips.UITests
                 await Page.CheckAsync(".filter-exact");
 
                 await Expect(Page.Locator("#tripsEmpty")).ToBeVisibleAsync();
-                await Expect(Page.Locator(".section-head__count")).ToHaveTextAsync("0 trips");
+                await Expect(Page.Locator(".trips .section-head__count")).ToHaveTextAsync("0 trips");
             }
             finally
             {
