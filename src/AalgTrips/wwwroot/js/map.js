@@ -71,6 +71,15 @@
         render();
     });
 
+    // The home-page "Cruises" toggle (filters.js) shows or hides the cruise routes
+    // independently of the trip filter.
+    let cruisesVisible = true;
+
+    document.addEventListener("cruises:toggle", (event) => {
+        cruisesVisible = event.detail !== false;
+        applyCruiseVisibility();
+    });
+
     // The marker file's URL is provided by the server (the photo store): a
     // root-relative /albums/markers.json for local disk, or a CDN/blob URL when
     // content is stored in Azure Blob. Fall back to the local path if absent.
@@ -191,6 +200,20 @@
                 });
             });
         });
+
+        // Honour a toggle that may have fired before the layer was populated.
+        applyCruiseVisibility();
+    }
+
+    // Adds or removes the whole cruise layer to match the "Cruises" toggle.
+    function applyCruiseVisibility() {
+        if (cruisesVisible) {
+            if (!map.hasLayer(cruiseLayer)) {
+                map.addLayer(cruiseLayer);
+            }
+        } else if (map.hasLayer(cruiseLayer)) {
+            map.removeLayer(cruiseLayer);
+        }
     }
 
     // The port hover tooltip: the port name over a muted date · arrive–depart ·

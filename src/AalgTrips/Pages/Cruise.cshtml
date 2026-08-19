@@ -205,6 +205,19 @@
         </div>
     </section>
 }
+else
+{
+    <p class="empty">
+        @if (User.IsInRole(Roles.Admin))
+        {
+            <text>No stops yet — use “Edit cruise” to add the itinerary.</text>
+        }
+        else
+        {
+            <text>This cruise has no itinerary yet.</text>
+        }
+    </p>
+}
 
 @if (Model.LinkedTrips.Count > 0)
 {

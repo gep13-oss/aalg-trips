@@ -1387,6 +1387,37 @@ dialog.modal--wide {
     opacity: .8;
 }
 
+/* "Part of the … cruise" backlink on a linked trip's album page. */
+.album-head__cruise {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem .8rem;
+    margin: .55rem 0 0;
+}
+
+.album-head__cruise-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .4ch;
+    font: 600 .82rem/1.2 var(--font-body);
+    color: var(--accent);
+    text-decoration: none;
+    padding: .2rem .6rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--accent-tint);
+}
+
+.album-head__cruise-link:hover,
+.album-head__cruise-link:focus-visible {
+    border-color: var(--accent);
+}
+
+/* The "Cruises" filter chip reads as a content-type toggle, not a trip attribute. */
+.chip--cruises {
+    margin-left: auto;
+}
+
 @media (max-width: 720px) {
     .stop-row__fields {
         grid-template-columns: repeat(2, 1fr);

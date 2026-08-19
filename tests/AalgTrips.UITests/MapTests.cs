@@ -50,7 +50,9 @@ namespace AalgTrips.UITests
             await BlockTilesAsync();
             await Page.GotoAsync(BaseUrl + "/");
 
-            await Page.Locator(".leaflet-marker-icon").First.ClickAsync();
+            // Scope to the album image marker: a cruise route's port pins are divIcon
+            // markers (also .leaflet-marker-icon) and would otherwise match here.
+            await Page.Locator("img.leaflet-marker-icon").First.ClickAsync();
 
             await Page.WaitForURLAsync(new Regex($"/album/{ServerFixture.SampleAlbumSlug}"));
         }

@@ -13,17 +13,25 @@ namespace AalgTrips.Pages
     public class AlbumsModel : AdminHandlerPageModel
     {
         private readonly AlbumCollection _ac;
+        private readonly CruiseCollection _cc;
         private readonly IPhotoStore _store;
         private readonly ImageProcessor _processor;
 
-        public AlbumsModel(AlbumCollection ac, IPhotoStore store, ImageProcessor processor)
+        public AlbumsModel(AlbumCollection ac, CruiseCollection cc, IPhotoStore store, ImageProcessor processor)
         {
             _ac = ac;
+            _cc = cc;
             _store = store;
             _processor = processor;
         }
 
         public Album Album { get; private set; }
+
+        /// <summary>
+        /// Gets the cruises this album is a trip on — a stop of the cruise links this
+        /// album's slug. Drives the "Part of the … cruise" backlink. Never null.
+        /// </summary>
+        public IReadOnlyList<Cruise> PartOfCruises { get; private set; } = new List<Cruise>();
 
         public IActionResult OnGet(string name)
         {
@@ -33,6 +41,11 @@ namespace AalgTrips.Pages
             {
                 return NotFound();
             }
+
+            PartOfCruises = _cc.Cruises
+                .Where(c => c.Stops.Any(s => (s.Trips ?? new List<string>())
+                    .Any(t => t.Equals(Album.Id, StringComparison.OrdinalIgnoreCase))))
+                .ToList();
 
             return Page();
         }

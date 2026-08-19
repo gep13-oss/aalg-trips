@@ -120,7 +120,7 @@ else
             <span class="section-head__count">@ac.Albums.Count trip@(ac.Albums.Count == 1 ? "" : "s")</span>
         </div>
 
-        @if (anyCastle || peopleInUse.Count > 0)
+        @if (anyCastle || peopleInUse.Count > 0 || cc.Cruises.Count > 0)
         {
             <div class="filters" id="filters" hidden>
                 <span class="filters__label">Filter</span>
@@ -135,6 +135,10 @@ else
                 @if (peopleInUse.Count > 0)
                 {
                     <label class="filters__exact" title="Show only trips with exactly the selected people"><input type="checkbox" class="filter-exact" /> Exact match</label>
+                }
+                @if (cc.Cruises.Count > 0)
+                {
+                    <label class="chip chip--cruises" title="Show or hide cruises and their map routes"><input type="checkbox" class="filter-cruises" checked /><span>Cruises</span></label>
                 }
                 <button type="button" class="filters__clear" hidden>Clear</button>
             </div>

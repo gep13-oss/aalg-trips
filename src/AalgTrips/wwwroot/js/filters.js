@@ -87,6 +87,27 @@
         document.dispatchEvent(new CustomEvent("trips:filter", { detail: active ? filter : null }));
     }
 
+    // Cruises toggle: independent of the trip filters. It shows or hides the Cruises
+    // card section and — via the cruises:toggle event that map.js listens for — the
+    // cruise routes on the map, without touching the trip cards or their count.
+    const cruisesBox = filters.querySelector(".filter-cruises");
+    const cruisesSection = document.querySelector(".cruises");
+
+    if (cruisesBox) {
+        const applyCruises = () => {
+            const show = cruisesBox.checked;
+
+            if (cruisesSection) {
+                cruisesSection.hidden = !show;
+            }
+
+            document.dispatchEvent(new CustomEvent("cruises:toggle", { detail: show }));
+        };
+
+        cruisesBox.addEventListener("change", applyCruises);
+        applyCruises();
+    }
+
     filters.addEventListener("change", apply);
 
     if (clearBtn) {
