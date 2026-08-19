@@ -1,0 +1,75 @@
+using System.Text.RegularExpressions;
+
+namespace AalgTrips.UITests
+{
+    /// <summary>
+    /// Coverage for the dynamic itinerary editor: stop rows can be added and removed
+    /// in the create modal, and a stop that links a trip album carries that link
+    /// through to the saved cruise (both the itinerary table and the trip cards).
+    /// </summary>
+    [TestFixture]
+    public class CruiseItineraryTests : UITestBase
+    {
+        [Test]
+        public async Task Itinerary_editor_adds_and_removes_stop_rows()
+        {
+            await SignInAsync();
+            await Page.GotoAsync(BaseUrl + "/");
+            await OpenAddCruiseModalAsync();
+
+            var rows = Page.Locator("#addCruiseDialog [data-stop-row]");
+
+            // The template row lives in a <template> and is not part of the live DOM,
+            // so the editor starts with no rows.
+            await Expect(rows).ToHaveCountAsync(0);
+
+            await Page.ClickAsync("#addCruiseDialog [data-add-stop]");
+            await Expect(rows).ToHaveCountAsync(1);
+
+            await Page.ClickAsync("#addCruiseDialog [data-add-stop]");
+            await Expect(rows).ToHaveCountAsync(2);
+
+            await Page.ClickAsync("#addCruiseDialog [data-stop-row]:first-child [data-remove-stop]");
+            await Expect(rows).ToHaveCountAsync(1);
+        }
+
+        [Test]
+        public async Task A_cruise_stop_can_link_a_trip_album()
+        {
+            await SignInAsync();
+
+            var title = "Itinerary Cruise " + System.Guid.NewGuid().ToString("N");
+            string? slug = null;
+
+            try
+            {
+                await Page.GotoAsync(BaseUrl + "/");
+                await OpenAddCruiseModalAsync();
+                await Page.FillAsync("#cruiseName", title);
+                await Page.FillAsync("#cruiseStart", "2025-07-15");
+                await Page.FillAsync("#cruiseEnd", "2025-07-22");
+
+                await Page.ClickAsync("#addCruiseDialog [data-add-stop]");
+                await Page.FillAsync("input[name='stops[0].Date']", "2025-07-15");
+                await Page.FillAsync("input[name='stops[0].Name']", "Rome");
+                await Page.SelectOptionAsync("select[name='stops[0].Trips']", new[] { ServerFixture.SampleAlbumSlug });
+
+                await Page.ClickAsync("#newcruise");
+                await Page.WaitForURLAsync(new Regex("/cruise/[^/]+/$"));
+                slug = Regex.Match(Page.Url, "/cruise/([^/]+)/").Groups[1].Value;
+
+                // The linked trip carries through to the saved cruise, both as an
+                // itinerary link and as a reused trip card.
+                await Expect(Page.Locator($".itinerary-trips a[href='/album/{ServerFixture.SampleAlbumSlug}/']")).ToBeVisibleAsync();
+                await Expect(Page.Locator($".trip-card[href='/album/{ServerFixture.SampleAlbumSlug}/']")).ToBeVisibleAsync();
+            }
+            finally
+            {
+                if (slug != null)
+                {
+                    await DeleteCruiseAsync(slug);
+                }
+            }
+        }
+    }
+}

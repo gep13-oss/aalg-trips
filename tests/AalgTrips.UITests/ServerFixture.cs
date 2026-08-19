@@ -33,6 +33,8 @@ namespace AalgTrips.UITests
         public const string TestViewerPassword = "viewer-password-123";
         public const string SampleAlbumSlug = "sample-trip";
         public const string SampleAlbumTitle = "Sample Trip";
+        public const string SampleCruiseSlug = "sample-cruise";
+        public const string SampleCruiseTitle = "Sample Cruise";
 
         [OneTimeSetUp]
         public async Task StartServer()
@@ -172,6 +174,61 @@ namespace AalgTrips.UITests
                 new { Lat = 51.5, Long = -0.12, Slug = "removed-album", Name = "Removed Album", Date = "Jan 2020", Photos = 3 },
             };
             File.WriteAllText(Path.Combine(albums, "markers.json"), JsonSerializer.Serialize(markers));
+
+            // Seed a sample cruise so the read-only cruise tests (detail render,
+            // actions menu) have stable content. Cruise content lives under a
+            // "cruises" prefix within the albums root; cruises.json is rebuilt from
+            // it on startup, so only the per-cruise cruise.json needs seeding. The
+            // itinerary mixes a port that links the sample album, a day at sea (no
+            // coordinates), and a second port, exercising the whole shape.
+            var cruiseDir = Path.Combine(albums, "cruises", SampleCruiseSlug);
+            Directory.CreateDirectory(cruiseDir);
+
+            var cruise = new
+            {
+                DisplayName = SampleCruiseTitle,
+                Description = "A sample cruise used by the baseline Playwright tests.",
+                StartDate = "2025-07-15T00:00:00",
+                EndDate = "2025-07-22T00:00:00",
+                People = new[] { "Gary" },
+                Stops = new object[]
+                {
+                    new
+                    {
+                        Date = "2025-07-15T00:00:00",
+                        Name = "Rome",
+                        AtSea = false,
+                        Arrive = (string?)null,
+                        Depart = "18:00",
+                        Latitude = (double?)41.9028,
+                        Longitude = (double?)12.4964,
+                        Trips = new[] { SampleAlbumSlug },
+                    },
+                    new
+                    {
+                        Date = "2025-07-16T00:00:00",
+                        Name = "Cruising",
+                        AtSea = true,
+                        Arrive = (string?)null,
+                        Depart = (string?)null,
+                        Latitude = (double?)null,
+                        Longitude = (double?)null,
+                        Trips = Array.Empty<string>(),
+                    },
+                    new
+                    {
+                        Date = "2025-07-17T00:00:00",
+                        Name = "Santorini",
+                        AtSea = false,
+                        Arrive = "08:00",
+                        Depart = "17:00",
+                        Latitude = (double?)36.3932,
+                        Longitude = (double?)25.4615,
+                        Trips = Array.Empty<string>(),
+                    },
+                },
+            };
+            File.WriteAllText(Path.Combine(cruiseDir, "cruise.json"), JsonSerializer.Serialize(cruise));
         }
 
         // Mirrors the app's AalgTrips.Models.PasswordHasher: PBKDF2/HMAC-SHA256,

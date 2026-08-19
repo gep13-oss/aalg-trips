@@ -1,0 +1,52 @@
+@using System.Collections.Generic
+@using System.Globalization
+@using AalgTrips.Models
+@model ItineraryRowModel
+@{
+    var inv = CultureInfo.InvariantCulture;
+    var i = Model.Index;
+    var stop = Model.Stop;
+    var linked = new HashSet<string>(stop?.Trips ?? new List<string>(), System.StringComparer.OrdinalIgnoreCase);
+}
+<fieldset class="stop-row" data-stop-row>
+    <div class="stop-row__fields">
+        <label class="field stop-field stop-field--date">
+            <span class="field__legend">Date</span>
+            <input type="date" name="stops[@i].Date" value="@(stop != null ? stop.Date.ToString("yyyy-MM-dd", inv) : string.Empty)" />
+        </label>
+        <label class="field stop-field stop-field--name">
+            <span class="field__legend">Port / name</span>
+            <input type="text" name="stops[@i].Name" value="@stop?.Name" placeholder="e.g. Santorini" />
+        </label>
+        <label class="field stop-field stop-field--atsea check-label">
+            <input type="checkbox" name="stops[@i].AtSea" value="true" checked="@(stop?.AtSea ?? false)" data-atsea />
+            <span>At sea</span>
+        </label>
+        <label class="field stop-field stop-field--arrive">
+            <span class="field__legend">Arrive</span>
+            <input type="time" name="stops[@i].Arrive" value="@stop?.Arrive" />
+        </label>
+        <label class="field stop-field stop-field--depart">
+            <span class="field__legend">Depart</span>
+            <input type="time" name="stops[@i].Depart" value="@stop?.Depart" />
+        </label>
+        <label class="field stop-field stop-field--lat">
+            <span class="field__legend">Latitude</span>
+            <input type="number" step="any" name="stops[@i].Latitude" value="@(stop?.Latitude?.ToString(inv))" data-lat />
+        </label>
+        <label class="field stop-field stop-field--long">
+            <span class="field__legend">Longitude</span>
+            <input type="number" step="any" name="stops[@i].Longitude" value="@(stop?.Longitude?.ToString(inv))" data-long />
+        </label>
+        <label class="field stop-field stop-field--trips">
+            <span class="field__legend">Trips visited</span>
+            <select name="stops[@i].Trips" multiple size="3">
+                @foreach (var album in Model.Albums)
+                {
+                    <option value="@album.Id" selected="@linked.Contains(album.Id)">@album.DisplayName</option>
+                }
+            </select>
+        </label>
+        <button type="button" class="btn btn--ghost stop-row__remove" data-remove-stop>Remove stop</button>
+    </div>
+</fieldset>

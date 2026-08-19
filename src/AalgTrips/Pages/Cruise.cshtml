@@ -1,0 +1,163 @@
+@page "{name}/{handler?}"
+@model CruisesModel
+@{
+    ViewData["Title"] = Model.Cruise.DisplayName;
+    ViewData["Description"] = $"The cruise \"{Model.Cruise.DisplayName}\" — {Model.Cruise.Stops.Count} stops from {Model.Cruise.StartDate.ToString("d MMM yyyy")} to {Model.Cruise.EndDate.ToString("d MMM yyyy")}";
+
+    var inv = System.Globalization.CultureInfo.InvariantCulture;
+}
+
+<div id="admin" class="album-admin" if-authorized>
+    <details class="actions-menu">
+        <summary class="btn btn--ghost actions-menu__trigger">Actions</summary>
+        <div class="actions-menu__list">
+            <button type="button" class="actions-menu__item" data-open-dialog="#editCruiseDialog">Edit cruise</button>
+            <button type="button" class="actions-menu__item" data-open-dialog="#renameCruiseDialog">Rename cruise</button>
+            <form method="post" class="actions-menu__form">
+                <input type="submit" class="actions-menu__item actions-menu__item--danger" asp-page-handler="delete" id="deletecruise" aria-label="Delete cruise" title="Delete cruise" value="Delete cruise" />
+            </form>
+        </div>
+    </details>
+
+    <dialog id="editCruiseDialog" class="modal modal--wide" aria-label="Edit cruise">
+        <form class="trip-form modal__form" method="post">
+            <h2 class="trip-form__title">Edit cruise</h2>
+            <button type="button" class="modal__close" data-close-dialog aria-label="Close">&times;</button>
+            <div class="field field--place">
+                <label for="cruiseName">Cruise name</label>
+                <input type="text" name="name" id="cruiseName" required value="@Model.Cruise.DisplayName" />
+            </div>
+            <div class="field field--date">
+                <label for="cruiseStart">Departs</label>
+                <input type="date" name="startDate" id="cruiseStart" required value="@Model.Cruise.StartDate.ToString("yyyy-MM-dd", inv)" />
+            </div>
+            <div class="field field--date">
+                <label for="cruiseEnd">Returns</label>
+                <input type="date" name="endDate" id="cruiseEnd" required value="@Model.Cruise.EndDate.ToString("yyyy-MM-dd", inv)" />
+            </div>
+            <div class="field field--notes">
+                <label for="cruiseDescription">Notes</label>
+                <textarea name="description" id="cruiseDescription" rows="3">@Model.Cruise.Description</textarea>
+            </div>
+            <partial name="_PeopleChecklist" model="Model.Cruise.People" />
+            @{
+                var editCruiseItinerary = new ItineraryEditorModel { Stops = Model.Cruise.Stops, Albums = Model.Albums };
+            }
+            <partial name="_ItineraryEditor" model="editCruiseItinerary" />
+            <div class="field field--actions">
+                <button type="button" class="btn btn--ghost" data-close-dialog>Cancel</button>
+                <input type="submit" class="btn btn--primary" asp-page-handler="edit" data-progress="Saving…" id="btnEditCruise" value="Save changes" />
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="renameCruiseDialog" class="modal" aria-label="Rename cruise">
+        <form class="trip-form modal__form" method="post">
+            <h2 class="trip-form__title">Rename cruise</h2>
+            <button type="button" class="modal__close" data-close-dialog aria-label="Close">&times;</button>
+            <p class="trip-form__hint">Updates the cruise's title <em>and</em> its web address to match; the itinerary and
+                linked trips move with it.</p>
+            <div class="field field--place">
+                <label for="renameCruiseName">New title</label>
+                <input type="text" name="name" id="renameCruiseName" required value="@Model.Cruise.DisplayName" />
+            </div>
+            <div class="field field--actions">
+                <button type="button" class="btn btn--ghost" data-close-dialog>Cancel</button>
+                <input type="submit" class="btn" asp-page-handler="rename" data-progress="Renaming…" id="btnRenameCruise" value="Rename &amp; fix link" />
+            </div>
+        </form>
+    </dialog>
+</div>
+
+<header class="album-head cruise-head">
+    <div class="album-head__top">
+        <h1 class="album-head__title">@Model.Cruise.DisplayName</h1>
+    </div>
+    <p class="album-head__dossier">
+        <span>@Model.Cruise.StartDate.ToString("d MMM yyyy") &ndash; @Model.Cruise.EndDate.ToString("d MMM yyyy")</span>
+        <span class="sep">·</span>
+        <span>@Model.Cruise.Stops.Count stop@(Model.Cruise.Stops.Count == 1 ? "" : "s")</span>
+    </p>
+    @if (!string.IsNullOrWhiteSpace(Model.Cruise.Description))
+    {
+        <p class="album-head__desc">@Model.Cruise.Description</p>
+    }
+    @if (Model.Cruise.People.Count > 0)
+    {
+        <p class="album-head__people"><span class="album-head__people-label">Who</span> @string.Join(", ", Model.Cruise.People)</p>
+    }
+</header>
+
+@if (Model.Cruise.Stops.Count > 0)
+{
+    <section class="cruise-itinerary">
+        <div class="section-head">
+            <h2 class="section-head__title">Itinerary</h2>
+        </div>
+        <div class="itinerary-table-wrap">
+            <table class="itinerary-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Date</th>
+                        <th scope="col">Port</th>
+                        <th scope="col">Arrive</th>
+                        <th scope="col">Depart</th>
+                        <th scope="col">Trips</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var stop in Model.Cruise.Stops)
+                    {
+                        <tr class="itinerary-row@(stop.AtSea ? " itinerary-row--sea" : "")">
+                            <td class="itinerary-date">@stop.Date.ToString("ddd d MMM")</td>
+                            <td class="itinerary-port">
+                                @stop.Name
+                                @if (stop.AtSea)
+                                {
+                                    <span class="itinerary-sea-tag">at sea</span>
+                                }
+                            </td>
+                            <td>@stop.Arrive</td>
+                            <td>@stop.Depart</td>
+                            <td class="itinerary-trips">
+                                @foreach (var slug in stop.Trips ?? new System.Collections.Generic.List<string>())
+                                {
+                                    var trip = Model.FindTrip(slug);
+                                    if (trip != null)
+                                    {
+                                        <a href="/album/@trip.UrlName/">@trip.DisplayName</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="itinerary-trip-missing">@slug</span>
+                                    }
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+@if (Model.LinkedTrips.Count > 0)
+{
+    <section class="trips">
+        <div class="section-head">
+            <h2 class="section-head__title">Trips on this cruise</h2>
+            <span class="section-head__count">@Model.LinkedTrips.Count trip@(Model.LinkedTrips.Count == 1 ? "" : "s")</span>
+        </div>
+        <div class="trip-grid">
+            @foreach (var album in Model.LinkedTrips)
+            {
+                <partial name="_TripCard" model="album" />
+            }
+        </div>
+    </section>
+}
+
+@section scripts {
+    <script if-authorized src="~/js/admin.js" async asp-append-version="true"></script>
+    <script if-authorized src="~/js/cruise-admin.js" asp-append-version="true"></script>
+}

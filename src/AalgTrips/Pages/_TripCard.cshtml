@@ -1,0 +1,39 @@
+@using AalgTrips.Models
+@model Album
+@{
+    var cover = Model.CoverPhoto;
+}
+<a class="trip-card" href="/album/@Model.UrlName/" data-castle="@(Model.CastleVisited ? "true" : "false")" data-people="@string.Join("|", Model.People)">
+    <div class="trip-card__media">
+        @if (Model.CastleVisited)
+        {
+            <span class="trip-card__castle" title="Castle visited" aria-label="Castle visited">
+                <svg viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true" focusable="false">
+                    <path d="M3 21V9h2V7h2v2h2V7h2v2h2V7h2v2h2V7h2v2h2v12H3Zm7 0v-6a2 2 0 0 1 4 0v6h-4Z" />
+                </svg>
+            </span>
+        }
+        @if (cover != null)
+        {
+            <img photo="@cover" type="Cover" />
+        }
+        else
+        {
+            <div class="trip-card__placeholder"></div>
+        }
+    </div>
+    <div class="trip-card__body">
+        <h3 class="trip-card__title">@Model.DisplayName</h3>
+        <p class="trip-card__dossier">
+            <span class="coord">@Model.Coordinates</span>
+            <span class="sep">·</span>
+            <span class="date">@Model.Visited.ToString("d MMM yyyy").ToUpperInvariant()</span>
+            <span class="sep">·</span>
+            <span class="count">@Model.Photos.Count photo@(Model.Photos.Count == 1 ? "" : "s")</span>
+        </p>
+        @if (Model.People.Count > 0)
+        {
+            <p class="trip-card__people"><span class="trip-card__people-label">Who</span> @string.Join(", ", Model.People)</p>
+        }
+    </div>
+</a>

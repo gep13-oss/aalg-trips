@@ -1,5 +1,6 @@
 @page
 @inject AlbumCollection ac
+@inject CruiseCollection cc
 @{
     ViewData["Title"] = "Albums";
     ViewData["Description"] = $"An online gallery where I share my photos with the world. Currently showing {ac.Albums.Count} albums ({string.Join(", ", ac.Albums.Select(a => a.Id))})";
@@ -19,6 +20,7 @@
 
 <div id="admin" class="page-actions" if-authorized>
     <button type="button" class="btn btn--primary" data-open-dialog="#addTripDialog">Add trip</button>
+    <button type="button" class="btn" data-open-dialog="#addCruiseDialog">Add cruise</button>
 
     <dialog id="addTripDialog" class="modal" aria-label="New trip">
         <form class="trip-form modal__form" method="post" action="~/album/new/create/">
@@ -58,10 +60,43 @@
             </div>
         </form>
     </dialog>
+
+    <dialog id="addCruiseDialog" class="modal modal--wide" aria-label="New cruise">
+        <form class="trip-form modal__form" method="post" action="~/cruise/new/create/">
+            <h2 class="trip-form__title">New cruise</h2>
+            <button type="button" class="modal__close" data-close-dialog aria-label="Close">&times;</button>
+
+            <div class="field field--place">
+                <label for="cruiseName">Cruise name</label>
+                <input type="text" name="name" id="cruiseName" required placeholder="e.g. Western Mediterranean" />
+            </div>
+            <div class="field field--date">
+                <label for="cruiseStart">Departs</label>
+                <input type="date" name="startDate" id="cruiseStart" required />
+            </div>
+            <div class="field field--date">
+                <label for="cruiseEnd">Returns</label>
+                <input type="date" name="endDate" id="cruiseEnd" required />
+            </div>
+            <div class="field field--notes">
+                <label for="cruiseDescription">Notes</label>
+                <textarea name="description" id="cruiseDescription" rows="3" placeholder="A few lines about the cruise…"></textarea>
+            </div>
+            <partial name="_PeopleChecklist" model="System.Array.Empty<string>()" />
+            @{
+                var newCruiseItinerary = new ItineraryEditorModel { Stops = System.Array.Empty<CruiseStop>(), Albums = ac.Albums };
+            }
+            <partial name="_ItineraryEditor" model="newCruiseItinerary" />
+            <div class="field field--actions">
+                <button type="button" class="btn btn--ghost" data-close-dialog>Cancel</button>
+                <input type="submit" id="newcruise" class="btn btn--primary" value="Add cruise" data-progress="Creating…" />
+            </div>
+        </form>
+    </dialog>
 </div>
 
 <section class="map-hero">
-    <div id="map" data-markers-url="@ac.MarkersUrl()"></div>
+    <div id="map" data-markers-url="@ac.MarkersUrl()" data-cruises-url="@cc.CruisesUrl()"></div>
 </section>
 
 @if (ac.Albums.Count == 0)
@@ -108,41 +143,7 @@ else
         <div class="trip-grid">
             @foreach (Album album in ac.Albums)
             {
-                var cover = album.CoverPhoto;
-                <a class="trip-card" href="/album/@album.UrlName/" data-castle="@(album.CastleVisited ? "true" : "false")" data-people="@string.Join("|", album.People)">
-                    <div class="trip-card__media">
-                        @if (album.CastleVisited)
-                        {
-                            <span class="trip-card__castle" title="Castle visited" aria-label="Castle visited">
-                                <svg viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true" focusable="false">
-                                    <path d="M3 21V9h2V7h2v2h2V7h2v2h2V7h2v2h2V7h2v2h2v12H3Zm7 0v-6a2 2 0 0 1 4 0v6h-4Z" />
-                                </svg>
-                            </span>
-                        }
-                        @if (cover != null)
-                        {
-                            <img photo="@cover" type="Cover" />
-                        }
-                        else
-                        {
-                            <div class="trip-card__placeholder"></div>
-                        }
-                    </div>
-                    <div class="trip-card__body">
-                        <h3 class="trip-card__title">@album.DisplayName</h3>
-                        <p class="trip-card__dossier">
-                            <span class="coord">@album.Coordinates</span>
-                            <span class="sep">·</span>
-                            <span class="date">@album.Visited.ToString("d MMM yyyy").ToUpperInvariant()</span>
-                            <span class="sep">·</span>
-                            <span class="count">@album.Photos.Count photo@(album.Photos.Count == 1 ? "" : "s")</span>
-                        </p>
-                        @if (album.People.Count > 0)
-                        {
-                            <p class="trip-card__people"><span class="trip-card__people-label">Who</span> @string.Join(", ", album.People)</p>
-                        }
-                    </div>
-                </a>
+                <partial name="_TripCard" model="album" />
             }
         </div>
 
@@ -162,4 +163,5 @@ else
     <script src="~/js/map.js" asp-append-version="true"></script>
     <script src="~/js/filters.js" asp-append-version="true"></script>
     <script if-authorized src="~/js/admin.js" async asp-append-version="true"></script>
+    <script if-authorized src="~/js/cruise-admin.js" asp-append-version="true"></script>
 }

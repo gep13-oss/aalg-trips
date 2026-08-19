@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
 
@@ -85,6 +86,74 @@ namespace AalgTrips.UITests
             await OpenActionsMenuAsync();
             await Page.ClickAsync($"[data-open-dialog='#{dialogId}']");
             await Page.WaitForSelectorAsync($"#{dialogId}[open]");
+        }
+
+        /// <summary>
+        /// Opens the home page "Add cruise" modal and waits for its dialog to be open.
+        /// </summary>
+        /// <returns>A task that completes once the Add-cruise dialog is open.</returns>
+        protected async Task OpenAddCruiseModalAsync()
+        {
+            await Page.ClickAsync("[data-open-dialog='#addCruiseDialog']");
+            await Page.WaitForSelectorAsync("#addCruiseDialog[open]");
+        }
+
+        /// <summary>
+        /// Creates a cruise through the home-page "Add cruise" modal and waits for the
+        /// redirect to its detail page, returning the slug the create assigned.
+        /// </summary>
+        /// <param name="title">The cruise title to create.</param>
+        /// <param name="startDate">The departure date (yyyy-MM-dd).</param>
+        /// <param name="endDate">The return date (yyyy-MM-dd).</param>
+        /// <returns>The slug of the created cruise.</returns>
+        protected async Task<string> CreateCruiseAsync(string title, string startDate = "2025-07-15", string endDate = "2025-07-22")
+        {
+            await Page.GotoAsync(BaseUrl + "/");
+            await OpenAddCruiseModalAsync();
+            await Page.FillAsync("#cruiseName", title);
+            await Page.FillAsync("#cruiseStart", startDate);
+            await Page.FillAsync("#cruiseEnd", endDate);
+            await Page.ClickAsync("#newcruise");
+            await Page.WaitForURLAsync(new Regex("/cruise/[^/]+/$"));
+
+            return Regex.Match(Page.Url, "/cruise/([^/]+)/").Groups[1].Value;
+        }
+
+        /// <summary>
+        /// Deletes a cruise through its detail-page Actions menu, accepting the delete
+        /// confirmation, so a mutation test can clean up after itself. A no-op when the
+        /// cruise no longer exists.
+        /// </summary>
+        /// <param name="slug">The slug of the cruise to delete.</param>
+        /// <returns>A task that completes once the cruise has been deleted.</returns>
+        protected async Task DeleteCruiseAsync(string slug)
+        {
+            var exists = await Page.APIRequest.GetAsync($"{BaseUrl}/cruise/{slug}/");
+
+            if (exists.Status != 200)
+            {
+                return;
+            }
+
+            await Page.GotoAsync($"{BaseUrl}/cruise/{slug}/");
+            await Page.ClickAsync("summary.actions-menu__trigger");
+            await Page.WaitForSelectorAsync(".actions-menu[open]");
+
+            Page.Dialog += AcceptDialog;
+            await Page.ClickAsync("#deletecruise");
+            await Page.WaitForURLAsync(BaseUrl + "/");
+            Page.Dialog -= AcceptDialog;
+        }
+
+        /// <summary>
+        /// Accepts a native dialog (the delete <c>confirm()</c>), so Playwright does
+        /// not auto-dismiss it and cancel the action.
+        /// </summary>
+        /// <param name="sender">The event source.</param>
+        /// <param name="dialog">The dialog to accept.</param>
+        protected static void AcceptDialog(object? sender, IDialog dialog)
+        {
+            dialog.AcceptAsync();
         }
 
         /// <summary>
