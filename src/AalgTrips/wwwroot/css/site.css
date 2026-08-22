@@ -342,6 +342,7 @@ img {
 .album-admin {
     display: flex;
     justify-content: flex-end;
+    gap: .6rem;
     margin: 0 0 1.5rem;
 }
 
@@ -564,6 +565,12 @@ dialog.modal::backdrop {
 /* A cruise port's map pin (Leaflet divIcon from map.js): a teal square that reads
    as a route waypoint rather than a trip. Local CSS only, no asset. */
 .port-pin {
+    /* Centre the badge on the point so a wider "1 · 6" pill (a round-trip port
+       docked at twice) overflows the fixed icon box symmetrically and stays put
+       over the coordinate. */
+    display: flex;
+    align-items: center;
+    justify-content: center;
     background: none;
     border: 0;
 }
@@ -571,14 +578,17 @@ dialog.modal::backdrop {
 .port-pin__num {
     display: grid;
     place-items: center;
-    width: 22px;
+    box-sizing: border-box;
+    min-width: 22px;
     height: 22px;
+    padding: 0 4px;
     border-radius: 5px;
     background: var(--accent);
     border: 2px solid #fff;
     box-shadow: 0 1px 4px rgba(21, 39, 44, .45);
     color: #fff;
     font: 700 11px/1 var(--font-body);
+    white-space: nowrap;
 }
 
 /* The cruise route line and its dotted trip connectors (Leaflet SVG paths tagged

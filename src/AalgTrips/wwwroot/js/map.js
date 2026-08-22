@@ -182,16 +182,11 @@
                 }).addTo(cruiseLayer);
             }
 
-            ports.forEach((port, index) => {
+            // Dotted connectors run per stop, so every stop's trips reach the map
+            // even when two stops share a port.
+            ports.forEach((port) => {
                 const position = [port.Lat, port.Long];
                 cruisePoints.push(position);
-
-                L.marker(position, { icon: portIconFor(index + 1, color) })
-                    .bindTooltip(portTooltip(cruise, port), { direction: "top", offset: [0, -11] })
-                    .on("click", () => {
-                        window.location.href = "cruise/" + cruise.Slug;
-                    })
-                    .addTo(cruiseLayer);
 
                 (port.Trips || []).forEach((slug) => {
                     const tripPosition = bySlug[slug];
@@ -206,6 +201,35 @@
                         }).addTo(cruiseLayer);
                     }
                 });
+            });
+
+            // Port pins. A round-trip cruise can dock at the same port twice (embark
+            // and return), which would stack the later pin exactly over the first and
+            // hide it. Group the ports by coordinate and draw a single pin per
+            // location, badged with every visit's sequence number ("1 · 6"), so a
+            // shared start/end port reads as both.
+            const pinsByLocation = new Map();
+            ports.forEach((port, index) => {
+                const key = port.Lat + "," + port.Long;
+                let group = pinsByLocation.get(key);
+
+                if (!group) {
+                    group = { position: [port.Lat, port.Long], visits: [] };
+                    pinsByLocation.set(key, group);
+                }
+
+                group.visits.push(Object.assign({ Seq: index + 1 }, port));
+            });
+
+            pinsByLocation.forEach((group) => {
+                const label = group.visits.map((visit) => visit.Seq).join(" · ");
+
+                L.marker(group.position, { icon: portIconFor(label, color) })
+                    .bindTooltip(portTooltip(cruise, group.visits), { direction: "top", offset: [0, -11] })
+                    .on("click", () => {
+                        window.location.href = "cruise/" + cruise.Slug;
+                    })
+                    .addTo(cruiseLayer);
             });
         });
 
@@ -225,38 +249,68 @@
     }
 
     // The port hover tooltip: the port name over a muted date · arrive–depart ·
-    // cruise-name line, built as DOM text so a name can never inject markup.
-    function portTooltip(cruise, port) {
+    // cruise-name line, built as DOM text so a name can never inject markup. A
+    // port docked at more than once (a round-trip start/end) gets one line per
+    // visit, prefixed with its stop number, then the cruise name.
+    function portTooltip(cruise, visits) {
         const tip = document.createElement("div");
         tip.className = "map-tip";
 
         const name = document.createElement("span");
         name.className = "map-tip__name";
-        name.textContent = port.Name || cruise.Name;
+        name.textContent = visits[0].Name || cruise.Name;
         tip.appendChild(name);
 
-        const meta = [];
-        if (port.Date) {
-            meta.push(port.Date);
-        }
+        if (visits.length === 1) {
+            const port = visits[0];
+            const meta = [];
 
-        const times = [port.Arrive, port.Depart].filter(Boolean).join("–");
-        if (times) {
-            meta.push(times);
-        }
+            if (port.Date) {
+                meta.push(port.Date);
+            }
 
-        if (cruise.Name) {
-            meta.push(cruise.Name);
-        }
+            const times = [port.Arrive, port.Depart].filter(Boolean).join("–");
+            if (times) {
+                meta.push(times);
+            }
 
-        if (meta.length > 0) {
-            const detail = document.createElement("span");
-            detail.className = "map-tip__meta";
-            detail.textContent = meta.join(" · ");
-            tip.appendChild(detail);
+            if (cruise.Name) {
+                meta.push(cruise.Name);
+            }
+
+            if (meta.length > 0) {
+                appendMeta(tip, meta.join(" · "));
+            }
+        } else {
+            visits.forEach((port) => {
+                const meta = ["Stop " + port.Seq];
+
+                if (port.Date) {
+                    meta.push(port.Date);
+                }
+
+                const times = [port.Arrive, port.Depart].filter(Boolean).join("–");
+                if (times) {
+                    meta.push(times);
+                }
+
+                appendMeta(tip, meta.join(" · "));
+            });
+
+            if (cruise.Name) {
+                appendMeta(tip, cruise.Name);
+            }
         }
 
         return tip;
+    }
+
+    // Appends one muted detail line to a map tooltip.
+    function appendMeta(tip, text) {
+        const detail = document.createElement("span");
+        detail.className = "map-tip__meta";
+        detail.textContent = text;
+        tip.appendChild(detail);
     }
 
     function matchesFilter(marker, filter) {

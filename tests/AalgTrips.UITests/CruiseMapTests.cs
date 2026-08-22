@@ -61,6 +61,42 @@ namespace AalgTrips.UITests
         }
 
         [Test]
+        public async Task A_round_trip_port_draws_one_pin_badged_with_both_visit_numbers()
+        {
+            await BlockTilesAsync();
+
+            // A round trip: Rome is both the first stop (embark) and the third
+            // (return) at the same coordinates, with Naples in between. The shared
+            // port must collapse into a single pin so the return does not hide the
+            // start.
+            await StubMarkersAsync(41.89, 12.49, "colosseum", "Colosseum");
+            await StubCruisesAsync(JsonSerializer.Serialize(new[]
+            {
+                new
+                {
+                    Slug = "med-cruise",
+                    Name = "Med Cruise",
+                    Color = "#e11d48",
+                    Ports = new[]
+                    {
+                        new { Lat = 41.90, Long = 12.50, Name = "Rome", Date = "15 Jul 2025", Arrive = (string?)null, Depart = (string?)"18:00", Trips = new[] { "colosseum" } },
+                        new { Lat = 40.85, Long = 14.27, Name = "Naples", Date = "18 Jul 2025", Arrive = (string?)"07:00", Depart = (string?)"17:00", Trips = System.Array.Empty<string>() },
+                        new { Lat = 41.90, Long = 12.50, Name = "Rome", Date = "21 Jul 2025", Arrive = (string?)"06:00", Depart = (string?)null, Trips = System.Array.Empty<string>() },
+                    },
+                },
+            }));
+
+            await Page.GotoAsync(BaseUrl + "/");
+
+            // Three stops but only two distinct locations -> two pins.
+            await Expect(Page.Locator(".port-pin")).ToHaveCountAsync(2);
+
+            // The shared start/end port is badged with both of its visit numbers.
+            await Expect(Page.Locator(".port-pin__num", new PageLocatorOptions { HasTextString = "1 · 3" })).ToHaveCountAsync(1);
+            await Expect(Page.Locator(".port-pin__num", new PageLocatorOptions { HasTextString = "2" })).ToHaveCountAsync(1);
+        }
+
+        [Test]
         public async Task Home_page_lists_cruise_cards_that_link_through()
         {
             await Page.GotoAsync(BaseUrl + "/");
