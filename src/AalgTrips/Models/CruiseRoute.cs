@@ -29,5 +29,14 @@ namespace AalgTrips.Models
         /// route line. Days at sea are not included.
         /// </summary>
         public List<CruisePort> Ports { get; set; }
+
+        /// <summary>
+        /// Gets or sets the optional pre-computed route geometry the line is drawn
+        /// along — an ordered list of <c>[latitude, longitude]</c> pairs uploaded for
+        /// the cruise (a rough sea route that stays on water). <c>null</c> when no
+        /// route has been uploaded, in which case the client draws straight lines
+        /// between the <see cref="Ports"/> instead.
+        /// </summary>
+        public List<double[]> Geometry { get; set; }
     }
 }

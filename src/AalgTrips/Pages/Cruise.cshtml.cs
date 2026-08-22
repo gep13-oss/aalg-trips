@@ -23,6 +23,10 @@ namespace AalgTrips.Pages
     /// </summary>
     public class CruisesModel : AdminHandlerPageModel
     {
+        // A route file is a small hand-off of pre-computed geometry; reject anything
+        // that could not plausibly be one before it is read into memory or parsed.
+        private const long MaxRouteBytes = 4 * 1024 * 1024;
+
         private readonly CruiseCollection _cc;
         private readonly AlbumCollection _ac;
         private readonly IPhotoStore _store;
@@ -39,6 +43,13 @@ namespace AalgTrips.Pages
         }
 
         public Cruise Cruise { get; private set; }
+
+        /// <summary>
+        /// Gets a value indicating whether the cruise has an uploaded route file, so
+        /// the admin UI can offer to remove it. When false the map draws straight
+        /// lines between the cruise's ports.
+        /// </summary>
+        public bool HasRoute { get; private set; }
 
         /// <summary>
         /// Gets the trip albums linked from the cruise's stops, in first-seen
@@ -64,6 +75,7 @@ namespace AalgTrips.Pages
 
             LinkedTrips = ResolveLinkedTrips(Cruise);
             LoadStopPhotos(Cruise);
+            HasRoute = _store.TryReadCruiseRoute(Cruise.Id) != null;
 
             return Page();
         }
@@ -180,6 +192,76 @@ namespace AalgTrips.Pages
             }
 
             await _store.DeleteCruisePhotoAsync(name, stopKey, photo);
+
+            return new RedirectResult($"~/cruise/{name}/");
+        }
+
+        public async Task<IActionResult> OnPostUploadRoute(string name, IFormFile file)
+        {
+            if (RequireAdmin() is { } challenge)
+            {
+                return challenge;
+            }
+
+            if (!SafePathHelper.IsValidSegment(name))
+            {
+                return BadRequest();
+            }
+
+            var cruise = _cc.Cruises.FirstOrDefault(c => c.Id.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+            if (cruise == null)
+            {
+                return NotFound();
+            }
+
+            if (file == null || file.Length == 0 || file.Length > MaxRouteBytes)
+            {
+                return BadRequest();
+            }
+
+            string json;
+
+            using (var reader = new StreamReader(file.OpenReadStream()))
+            {
+                json = await reader.ReadToEndAsync();
+            }
+
+            // The route is computed offline and uploaded as GeoJSON; a file that is
+            // not a usable line of at least two valid coordinates is rejected rather
+            // than stored, so the map never draws a broken route.
+            if (!GeoJsonRoute.TryParse(json, out var points))
+            {
+                return BadRequest();
+            }
+
+            await _store.SaveCruiseRouteAsync(name, points);
+            await _cc.WriteCruisesAsync();
+
+            return new RedirectResult($"~/cruise/{name}/");
+        }
+
+        public async Task<IActionResult> OnPostDeleteRoute(string name)
+        {
+            if (RequireAdmin() is { } challenge)
+            {
+                return challenge;
+            }
+
+            if (!SafePathHelper.IsValidSegment(name))
+            {
+                return BadRequest();
+            }
+
+            var cruise = _cc.Cruises.FirstOrDefault(c => c.Id.Equals(name, StringComparison.OrdinalIgnoreCase));
+
+            if (cruise == null)
+            {
+                return NotFound();
+            }
+
+            await _store.DeleteCruiseRouteAsync(name);
+            await _cc.WriteCruisesAsync();
 
             return new RedirectResult($"~/cruise/{name}/");
         }

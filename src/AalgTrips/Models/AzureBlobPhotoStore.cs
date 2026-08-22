@@ -307,6 +307,35 @@ namespace AalgTrips.Models
         }
 
         /// <inheritdoc />
+        public IReadOnlyList<double[]> TryReadCruiseRoute(string cruiseId)
+        {
+            var blob = _container.GetBlobClient(CruiseRouteKey(cruiseId));
+
+            if (!blob.Exists())
+            {
+                return null;
+            }
+
+            BlobDownloadResult download = blob.DownloadContent();
+            return JsonSerializer.Deserialize<List<double[]>>(download.Content.ToString());
+        }
+
+        /// <inheritdoc />
+        public async Task SaveCruiseRouteAsync(string cruiseId, IEnumerable<double[]> route)
+        {
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, route);
+            stream.Position = 0;
+            await _container.GetBlobClient(CruiseRouteKey(cruiseId)).UploadAsync(stream, overwrite: true);
+        }
+
+        /// <inheritdoc />
+        public async Task DeleteCruiseRouteAsync(string cruiseId)
+        {
+            await _container.GetBlobClient(CruiseRouteKey(cruiseId)).DeleteIfExistsAsync();
+        }
+
+        /// <inheritdoc />
         public bool TryOpenContent(string key, out Stream content)
         {
             content = null;
@@ -451,6 +480,11 @@ namespace AalgTrips.Models
         private static string CruiseMetadataKey(string cruiseId)
         {
             return $"{PhotoStoreConventions.CruisesFolder}/{cruiseId}/{PhotoStoreConventions.CruiseMetadataFileName}";
+        }
+
+        private static string CruiseRouteKey(string cruiseId)
+        {
+            return $"{PhotoStoreConventions.CruisesFolder}/{cruiseId}/{PhotoStoreConventions.CruiseRouteFileName}";
         }
 
         private static string CruiseStopPrefix(string cruiseId, string stopKey)

@@ -170,8 +170,14 @@
 
         cruiseRoutes.forEach((cruise) => {
             const ports = Array.isArray(cruise.Ports) ? cruise.Ports : [];
-            const line = ports.map((port) => [port.Lat, port.Long]);
             const color = cruise.Color || defaultRouteColor;
+
+            // A cruise with an uploaded route (a rough sea path computed offline) is
+            // drawn along that geometry; otherwise the line falls back to straight
+            // hops between the ports.
+            const line = Array.isArray(cruise.Geometry) && cruise.Geometry.length >= 2
+                ? cruise.Geometry
+                : ports.map((port) => [port.Lat, port.Long]);
 
             if (line.length >= 2) {
                 L.polyline(line, {
@@ -179,6 +185,9 @@
                     color: color,
                     weight: 3,
                     opacity: 0.85,
+                    // The route is a small, curated path — draw it faithfully rather
+                    // than let Leaflet simplify vertices away.
+                    smoothFactor: 0,
                 }).addTo(cruiseLayer);
             }
 

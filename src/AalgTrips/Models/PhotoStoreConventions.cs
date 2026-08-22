@@ -34,6 +34,13 @@ namespace AalgTrips.Models
         /// <summary>The file name a cruise's metadata is stored as.</summary>
         public const string CruiseMetadataFileName = "cruise.json";
 
+        /// <summary>
+        /// The file name a cruise's uploaded route geometry is stored as (beside its
+        /// metadata, under the cruise's own folder). Optional — a cruise without one
+        /// falls back to straight lines between its ports on the map.
+        /// </summary>
+        public const string CruiseRouteFileName = "route.json";
+
         /// <summary>The file name the map's cruise-route list is stored as (at the top level).</summary>
         public const string CruisesFileName = "cruises.json";
 

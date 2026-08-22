@@ -92,8 +92,58 @@ namespace AalgTrips.UITests
             await Expect(Page.Locator(".port-pin")).ToHaveCountAsync(2);
 
             // The shared start/end port is badged with both of its visit numbers.
-            await Expect(Page.Locator(".port-pin__num", new PageLocatorOptions { HasTextString = "1 · 3" })).ToHaveCountAsync(1);
-            await Expect(Page.Locator(".port-pin__num", new PageLocatorOptions { HasTextString = "2" })).ToHaveCountAsync(1);
+            var combined = Page.Locator(".port-pin__num", new PageLocatorOptions { HasTextString = "1 · 3" });
+            var single = Page.Locator(".port-pin__num", new PageLocatorOptions { HasTextString = "2" });
+            await Expect(combined).ToHaveCountAsync(1);
+            await Expect(single).ToHaveCountAsync(1);
+
+            // The combined badge must grow to fit both numbers rather than clip them
+            // inside the single-digit box.
+            var combinedBox = await combined.BoundingBoxAsync();
+            var singleBox = await single.BoundingBoxAsync();
+            Assert.That(combinedBox!.Width, Is.GreaterThan(singleBox!.Width), "the '1 · 3' badge should be wider than a single-number pin");
+        }
+
+        [Test]
+        public async Task An_uploaded_route_is_drawn_along_its_geometry_not_straight_port_lines()
+        {
+            await BlockTilesAsync();
+
+            // A two-port cruise that also carries an uploaded route: a four-point line
+            // between the ports (a stand-in for an offline-computed sea route). The
+            // drawn polyline should follow all four points, not join the two ports
+            // with a single straight segment.
+            await StubMarkersAsync(41.89, 12.49, "colosseum", "Colosseum");
+            await StubCruisesAsync(JsonSerializer.Serialize(new[]
+            {
+                new
+                {
+                    Slug = "med-cruise",
+                    Name = "Med Cruise",
+                    Color = "#e11d48",
+                    Ports = new[]
+                    {
+                        new { Lat = 41.90, Long = 12.50, Name = "Rome", Trips = System.Array.Empty<string>() },
+                        new { Lat = 40.85, Long = 14.27, Name = "Naples", Trips = System.Array.Empty<string>() },
+                    },
+                    Geometry = new[]
+                    {
+                        new[] { 41.90, 12.50 },
+                        new[] { 41.50, 13.00 },
+                        new[] { 41.00, 13.80 },
+                        new[] { 40.85, 14.27 },
+                    },
+                },
+            }));
+
+            await Page.GotoAsync(BaseUrl + "/");
+
+            await Expect(Page.Locator("path.cruise-route")).ToHaveCountAsync(1);
+
+            // Leaflet renders the polyline as "M…L…L…L…"; a route through 4 points has
+            // exactly three line segments, where the 2-port fallback would have one.
+            await Expect(Page.Locator("path.cruise-route"))
+                .ToHaveAttributeAsync("d", new Regex(@"^M[^L]*(?:L[^L]*){3}$"));
         }
 
         [Test]

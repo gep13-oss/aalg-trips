@@ -565,17 +565,19 @@ dialog.modal::backdrop {
 /* A cruise port's map pin (Leaflet divIcon from map.js): a teal square that reads
    as a route waypoint rather than a trip. Local CSS only, no asset. */
 .port-pin {
-    /* Centre the badge on the point so a wider "1 · 6" pill (a round-trip port
-       docked at twice) overflows the fixed icon box symmetrically and stays put
-       over the coordinate. */
-    display: flex;
-    align-items: center;
-    justify-content: center;
     background: none;
     border: 0;
 }
 
 .port-pin__num {
+    /* Anchor the badge's centre on the point (the 22px icon's centre) and let it
+       size to its label — a single digit stays a 22px square, while a wider
+       "1 · 6" pill (a round-trip port docked at twice) grows symmetrically about
+       the point instead of clipping inside the fixed icon box. */
+    position: absolute;
+    left: 11px;
+    top: 11px;
+    transform: translate(-50%, -50%);
     display: grid;
     place-items: center;
     box-sizing: border-box;

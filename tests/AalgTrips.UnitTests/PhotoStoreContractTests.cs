@@ -302,6 +302,66 @@ namespace AalgTrips.UnitTests
         }
 
         [Test]
+        public async Task Cruise_route_round_trips_and_a_missing_route_reads_as_null()
+        {
+            var store = CreateStore();
+
+            Assert.That(store.TryReadCruiseRoute(Cruise), Is.Null, "a cruise with no uploaded route reads as null");
+
+            await store.SaveCruiseRouteAsync(Cruise, new[]
+            {
+                new[] { 41.90, 12.50 },
+                new[] { 40.85, 14.27 },
+            });
+
+            var read = store.TryReadCruiseRoute(Cruise);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(read, Is.Not.Null);
+                Assert.That(read, Has.Count.EqualTo(2));
+                Assert.That(read[0], Is.EqualTo(new[] { 41.90, 12.50 }).Within(1e-9));
+                Assert.That(read[1], Is.EqualTo(new[] { 40.85, 14.27 }).Within(1e-9));
+            });
+        }
+
+        [Test]
+        public async Task Deleting_a_cruise_route_leaves_the_cruise_itself()
+        {
+            var store = CreateStore();
+            await store.WriteCruiseAsync(Cruise, new CruiseMetaData { DisplayName = "Sample" });
+            await store.SaveCruiseRouteAsync(Cruise, new[] { new[] { 1.0, 2.0 }, new[] { 3.0, 4.0 } });
+
+            await store.DeleteCruiseRouteAsync(Cruise);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(store.TryReadCruiseRoute(Cruise), Is.Null);
+                Assert.That(store.CruiseExists(Cruise), Is.True, "only the route is removed");
+            });
+        }
+
+        [Test]
+        public async Task A_cruise_route_moves_on_rename_and_is_removed_with_the_cruise()
+        {
+            var store = CreateStore();
+            await store.WriteCruiseAsync(Cruise, new CruiseMetaData { DisplayName = "Sample" });
+            await store.SaveCruiseRouteAsync(Cruise, new[] { new[] { 1.0, 2.0 }, new[] { 3.0, 4.0 } });
+
+            await store.RenameCruiseAsync(Cruise, "renamed-cruise");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(store.TryReadCruiseRoute("renamed-cruise"), Has.Count.EqualTo(2), "the route moves with the cruise");
+                Assert.That(store.TryReadCruiseRoute(Cruise), Is.Null, "nothing is left under the old id");
+            });
+
+            await store.DeleteCruiseAsync("renamed-cruise");
+
+            Assert.That(store.TryReadCruiseRoute("renamed-cruise"), Is.Null, "the route is removed with the cruise");
+        }
+
+        [Test]
         public async Task Cruise_stop_photo_is_saved_listed_readable_and_has_a_url()
         {
             var store = CreateStore();

@@ -194,6 +194,31 @@ namespace AalgTrips.Models
         Task WriteCruisesAsync(IEnumerable<CruiseRoute> routes);
 
         /// <summary>
+        /// Reads a cruise's uploaded route geometry if present — an ordered list of
+        /// <c>[latitude, longitude]</c> pairs the map draws the cruise's line along
+        /// (a rough sea route computed offline and uploaded per cruise).
+        /// </summary>
+        /// <param name="cruiseId">The cruise to read.</param>
+        /// <returns>The route points, or <c>null</c> when the cruise has no uploaded route.</returns>
+        IReadOnlyList<double[]> TryReadCruiseRoute(string cruiseId);
+
+        /// <summary>
+        /// Saves (creates or replaces) a cruise's route geometry.
+        /// </summary>
+        /// <param name="cruiseId">The cruise to write.</param>
+        /// <param name="route">The ordered <c>[latitude, longitude]</c> pairs.</param>
+        /// <returns>A task that completes when the route is stored.</returns>
+        Task SaveCruiseRouteAsync(string cruiseId, IEnumerable<double[]> route);
+
+        /// <summary>
+        /// Deletes a cruise's uploaded route geometry, reverting its map line to
+        /// straight port-to-port segments. A no-op when the cruise has no route.
+        /// </summary>
+        /// <param name="cruiseId">The cruise whose route is removed.</param>
+        /// <returns>A task that completes when the route is removed.</returns>
+        Task DeleteCruiseRouteAsync(string cruiseId);
+
+        /// <summary>
         /// Opens stored content by its store key (for example
         /// <c>{albumId}/{photo}</c>, <c>{albumId}/thumbnail/{thumb}</c> or
         /// <c>markers.json</c>) so the authenticated media endpoint can stream it.

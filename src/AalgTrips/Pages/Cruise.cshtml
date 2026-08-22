@@ -13,6 +13,13 @@
         <div class="actions-menu__list">
             <button type="button" class="actions-menu__item" data-open-dialog="#editCruiseDialog">Edit cruise</button>
             <button type="button" class="actions-menu__item" data-open-dialog="#renameCruiseDialog">Rename cruise</button>
+            <button type="button" class="actions-menu__item" data-open-dialog="#uploadRouteDialog">Upload route map</button>
+            @if (Model.HasRoute)
+            {
+                <form method="post" class="actions-menu__form">
+                    <input type="submit" class="actions-menu__item actions-menu__item--danger" asp-page-handler="deleteroute" id="deleteroute" aria-label="Remove route map" title="Remove route map" value="Remove route map" />
+                </form>
+            }
             <form method="post" class="actions-menu__form">
                 <input type="submit" class="actions-menu__item actions-menu__item--danger" asp-page-handler="delete" id="deletecruise" aria-label="Delete cruise" title="Delete cruise" value="Delete cruise" />
             </form>
@@ -84,6 +91,23 @@
             <div class="field field--actions">
                 <button type="button" class="btn btn--ghost" data-close-dialog>Cancel</button>
                 <input type="submit" class="btn btn--primary" data-progress="Uploading…" id="btnStopUpload" value="Upload photos" />
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="uploadRouteDialog" class="modal" aria-label="Upload a route map">
+        <form class="trip-form modal__form" method="post" enctype="multipart/form-data" asp-page-handler="uploadroute">
+            <h2 class="trip-form__title">Upload route map</h2>
+            <button type="button" class="modal__close" data-close-dialog aria-label="Close">&times;</button>
+            <p class="trip-form__hint">A GeoJSON line drawn on the map in place of straight lines between the ports —
+                a rough sea route that stays on water. Replaces any route already uploaded.</p>
+            <div class="field field--file">
+                <label for="routeFile">Route file (GeoJSON)</label>
+                <input type="file" id="routeFile" name="file" required accept=".json,.geojson,application/json,application/geo+json" />
+            </div>
+            <div class="field field--actions">
+                <button type="button" class="btn btn--ghost" data-close-dialog>Cancel</button>
+                <input type="submit" class="btn btn--primary" data-progress="Uploading…" id="btnRouteUpload" value="Upload route" />
             </div>
         </form>
     </dialog>

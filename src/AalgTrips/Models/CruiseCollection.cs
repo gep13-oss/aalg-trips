@@ -119,21 +119,29 @@ namespace AalgTrips.Models
         /// <returns>A task that completes when the cruise-route file has been written.</returns>
         public async Task WriteCruisesAsync()
         {
-            List<CruiseRoute> routes;
+            List<Cruise> snapshot;
 
             lock (_sync)
             {
-                routes = Cruises.Select(ToRoute).ToList();
+                snapshot = Cruises.ToList();
             }
+
+            // Reading each cruise's uploaded route file is I/O, so map the snapshot
+            // outside the lock rather than holding it across store reads.
+            var routes = snapshot.Select(ToRoute).ToList();
 
             await _store.WriteCruisesAsync(routes);
         }
 
         // Projects a cruise onto its map route: only the stops that have
         // coordinates become ports (days at sea are skipped), preserving itinerary
-        // order, and each port carries its linked trip slugs for the connectors.
-        private static CruiseRoute ToRoute(Cruise cruise)
+        // order, and each port carries its linked trip slugs for the connectors. A
+        // cruise with an uploaded route file also carries its pre-computed geometry,
+        // which the client draws the line along instead of straight port-to-port hops.
+        private CruiseRoute ToRoute(Cruise cruise)
         {
+            var geometry = _store.TryReadCruiseRoute(cruise.Id);
+
             return new CruiseRoute
             {
                 Slug = cruise.Id,
@@ -151,6 +159,7 @@ namespace AalgTrips.Models
                         Trips = (s.Trips ?? new List<string>()).ToList(),
                     })
                     .ToList(),
+                Geometry = geometry?.ToList(),
             };
         }
 

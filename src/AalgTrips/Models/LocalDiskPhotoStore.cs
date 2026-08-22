@@ -301,6 +301,42 @@ namespace AalgTrips.Models
         }
 
         /// <inheritdoc />
+        public IReadOnlyList<double[]> TryReadCruiseRoute(string cruiseId)
+        {
+            string path = Path.Combine(CruiseDir(cruiseId), PhotoStoreConventions.CruiseRouteFileName);
+
+            if (!File.Exists(path))
+            {
+                return null;
+            }
+
+            return JsonSerializer.Deserialize<List<double[]>>(File.ReadAllText(path));
+        }
+
+        /// <inheritdoc />
+        public async Task SaveCruiseRouteAsync(string cruiseId, IEnumerable<double[]> route)
+        {
+            string dir = CruiseDir(cruiseId);
+            Directory.CreateDirectory(dir);
+
+            using var stream = File.Create(Path.Combine(dir, PhotoStoreConventions.CruiseRouteFileName));
+            await JsonSerializer.SerializeAsync(stream, route);
+        }
+
+        /// <inheritdoc />
+        public Task DeleteCruiseRouteAsync(string cruiseId)
+        {
+            string path = Path.Combine(CruiseDir(cruiseId), PhotoStoreConventions.CruiseRouteFileName);
+
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc />
         public bool TryOpenContent(string key, out Stream content)
         {
             content = null;
