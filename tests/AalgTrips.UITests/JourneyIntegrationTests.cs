@@ -29,7 +29,7 @@ namespace AalgTrips.UITests
         public async Task Journeys_toggle_hides_the_journey_section_and_its_routes()
         {
             await SignInAsync();
-            await Page.RouteAsync("**/tile.openstreetmap.org/**", route => route.AbortAsync());
+            await Page.RouteAsync("**/basemaps.cartocdn.com/**", route => route.AbortAsync());
             await Page.GotoAsync(BaseUrl + "/");
 
             var section = Page.Locator("section.journeys[data-journey-kind='Cruise']");

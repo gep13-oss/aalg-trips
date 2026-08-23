@@ -311,7 +311,7 @@ namespace AalgTrips.UITests
 
         private Task BlockTilesAsync()
         {
-            return Page.RouteAsync("**/tile.openstreetmap.org/**", route => route.AbortAsync());
+            return Page.RouteAsync("**/basemaps.cartocdn.com/**", route => route.AbortAsync());
         }
 
         private Task StubMarkersAsync(double lat, double lng, string slug, string name)

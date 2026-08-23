@@ -5,9 +5,9 @@ using Microsoft.Playwright;
 namespace AalgTrips.UITests
 {
     /// <summary>
-    /// Covers the Leaflet + OpenStreetMap album map that replaced Google Maps.
+    /// Covers the Leaflet + CARTO basemap album map that replaced Google Maps.
     /// The map lives on the home page, which now requires authentication, so each
-    /// test signs in first. OpenStreetMap tile requests are aborted so the suite
+    /// test signs in first. Basemap tile requests are aborted so the suite
     /// stays hermetic and never depends on (or hammers) the public tile servers;
     /// the assertions ride on Leaflet's own DOM — the map container and the
     /// locally-served marker icons — and the marker-to-album navigation, none of
@@ -136,13 +136,26 @@ namespace AalgTrips.UITests
         }
 
         [Test]
-        public async Task Home_page_uses_openstreetmap_not_google_maps()
+        public async Task Home_page_uses_leaflet_not_google_maps()
         {
             var response = await Page.APIRequest.GetAsync(BaseUrl + "/");
             var body = await response.TextAsync();
 
             Assert.That(body, Does.Not.Contain("maps.googleapis.com"), "the Google Maps script must be gone");
             Assert.That(body, Does.Contain("/lib/leaflet/leaflet.js"), "the page should load Leaflet");
+        }
+
+        [Test]
+        public async Task Map_draws_carto_voyager_tiles()
+        {
+            // The basemap is CARTO's Voyager (OpenStreetMap data, English/Latin labels).
+            // Pin the provider from the script itself so a silent revert to the
+            // endonym-only OSM standard tiles is caught. That the enforced CSP allows
+            // this tile host is covered by Map_page_has_no_content_security_policy_violations.
+            var script = await Page.APIRequest.GetAsync(BaseUrl + "/js/map.js");
+            var body = await script.TextAsync();
+
+            Assert.That(body, Does.Contain("basemaps.cartocdn.com/rastertiles/voyager"), "the map must draw the CARTO Voyager basemap");
         }
 
         [Test]
@@ -184,7 +197,7 @@ namespace AalgTrips.UITests
 
         private Task BlockTilesAsync()
         {
-            return Page.RouteAsync("**/tile.openstreetmap.org/**", route => route.AbortAsync());
+            return Page.RouteAsync("**/basemaps.cartocdn.com/**", route => route.AbortAsync());
         }
 
         // Intercepts the map's marker fetch and returns a crafted set, so a test can

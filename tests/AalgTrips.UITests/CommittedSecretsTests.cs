@@ -3,8 +3,8 @@ namespace AalgTrips.UITests
     /// <summary>
     /// Guards against a secret leaking back into the rendered page. The Google
     /// Maps API key used to be hardcoded in <c>Index.cshtml</c>. The map is now
-    /// Leaflet + OpenStreetMap, which needs no key, so the home page must contain
-    /// no Google API key at all — this test keeps it from creeping back. The home
+    /// Leaflet + CARTO's Voyager basemap, which needs no key, so the home page must
+    /// contain no Google API key at all — this test keeps it from creeping back. The home
     /// page now requires authentication, so it signs in first.
     /// </summary>
     [TestFixture]

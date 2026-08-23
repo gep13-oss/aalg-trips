@@ -102,13 +102,13 @@ var app = builder.Build();
 // error responses alike — by sitting at the front of the pipeline. web.config's
 // header block is an IIS concept and is ignored on Linux App Service, so the
 // headers are set here instead. The CSP was rolled out in Report-Only first and
-// is now enforced: the site loads no inline scripts and only OpenStreetMap tiles
-// cross-origin, so script-src can stay 'self' (style-src keeps 'unsafe-inline'
-// because Leaflet/PhotoSwipe set inline styles).
+// is now enforced: the site loads no inline scripts and only the CARTO basemap
+// tiles cross-origin, so script-src can stay 'self' (style-src keeps
+// 'unsafe-inline' because Leaflet/PhotoSwipe set inline styles).
 const string contentSecurityPolicy =
     "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; " +
     "form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
-    "img-src 'self' data: https://tile.openstreetmap.org; font-src 'self'; " +
+    "img-src 'self' data: https://*.basemaps.cartocdn.com; font-src 'self'; " +
     "connect-src 'self'; upgrade-insecure-requests";
 
 app.Use(async (context, next) =>
