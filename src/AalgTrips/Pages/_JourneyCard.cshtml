@@ -18,8 +18,16 @@
     var coverAlbum = linkedAlbums.FirstOrDefault(a => a.CoverPhoto != null);
     var stopCount = Model.Waypoints.Count;
     var tripCount = linkedAlbums.Count;
+
+    // The route's chosen colour drives a strip along the bottom of the card, tying the
+    // card to its line on the map. It comes from an <input type="color"> so is normally
+    // a #rrggbb hex; guard against a hand-edited metadata value before putting it in an
+    // inline style, falling back to the same default the map uses.
+    var routeColor = System.Text.RegularExpressions.Regex.IsMatch(Model.RouteColor ?? string.Empty, "^#[0-9A-Fa-f]{6}$")
+        ? Model.RouteColor
+        : Journey.DefaultRouteColor;
 }
-<a class="trip-card journey-card" href="@Model.Link">
+<a class="trip-card journey-card" href="@Model.Link" style="--route-color:@routeColor">
     <div class="trip-card__media">
         @if (coverAlbum != null)
         {

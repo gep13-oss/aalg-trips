@@ -545,21 +545,31 @@ dialog.modal::backdrop {
     font: inherit;
 }
 
-/* A castle trip's map pin (Leaflet divIcon from map.js): a warm-amber dot that
-   stands out from the default blue teardrop marker. Local CSS only, no asset. */
+/* A castle trip's map pin (Leaflet divIcon from map.js): a warm-amber round badge
+   stamped with a white castle glyph, so it stands out from the default blue
+   teardrop marker and reads as a castle at a glance. Local CSS + inline SVG,
+   no asset. */
 .castle-pin {
     background: none;
     border: 0;
 }
 
-.castle-pin__dot {
-    display: block;
-    width: 18px;
-    height: 18px;
+.castle-pin__badge {
+    display: grid;
+    place-items: center;
+    box-sizing: border-box;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     background: #c07a1e;
-    border: 3px solid #fff;
+    border: 2px solid #fff;
     box-shadow: 0 1px 4px rgba(21, 39, 44, .45);
+}
+
+.castle-pin__glyph {
+    width: 14px;
+    height: 14px;
+    fill: #fff;
 }
 
 /* A journey port's map pin (Leaflet divIcon from map.js): a teal square that reads
@@ -1431,6 +1441,26 @@ dialog.modal--wide {
 
 /* Home "Journeys" cards reuse .trip-card; a journey with no linked-trip cover shows
    a ship glyph centred in the media panel instead. */
+
+/* A strip in the journey's route colour runs along the very bottom edge of the card,
+   tying the card to its coloured line on the map. --route-color is set inline per card
+   from the journey's chosen colour; the card's overflow:hidden clips the strip to the
+   rounded bottom corners, and absolute positioning pins it to the bottom whatever height
+   the grid stretches the card to. */
+.journey-card {
+    position: relative;
+}
+
+.journey-card::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 5px;
+    background: var(--route-color, var(--accent));
+}
+
 .journey-card__counts {
     margin: .15rem 0 0;
     font: 600 .7rem/1.4 var(--font-mono);

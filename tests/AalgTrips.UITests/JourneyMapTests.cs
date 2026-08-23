@@ -246,6 +246,62 @@ namespace AalgTrips.UITests
         }
 
         [Test]
+        public async Task A_shared_port_stored_at_slightly_different_coordinates_still_splits()
+        {
+            await BlockTilesAsync();
+
+            // The same port entered at slightly different precision in two journeys (as
+            // Civitavecchia is: 42.094,11.796 in one journey and 42.0924,11.7963 in
+            // another). Exact-coordinate matching would miss the pairing and let one pin
+            // hide the other; a proximity cluster must still fan the two apart.
+            await StubMarkersAsync(41.89, 12.49, "colosseum", "Colosseum");
+            await StubJourneysAsync(JsonSerializer.Serialize(new[]
+            {
+                new
+                {
+                    Slug = "med-journey",
+                    Name = "Med Journey",
+                    Kind = "Cruise",
+                    Color = "#e11d48",
+                    Waypoints = new[]
+                    {
+                        new { Lat = 42.094, Long = 11.796, Name = "Rome", Trips = System.Array.Empty<string>() },
+                        new { Lat = 40.85, Long = 14.27, Name = "Naples", Trips = System.Array.Empty<string>() },
+                    },
+                },
+                new
+                {
+                    Slug = "tyrrhenian-journey",
+                    Name = "Tyrrhenian Journey",
+                    Kind = "Cruise",
+                    Color = "#0ea5e9",
+                    Waypoints = new[]
+                    {
+                        new { Lat = 42.0924, Long = 11.7963, Name = "Rome", Trips = System.Array.Empty<string>() },
+                        new { Lat = 38.11, Long = 13.36, Name = "Palermo", Trips = System.Array.Empty<string>() },
+                    },
+                },
+            }));
+
+            await Page.GotoAsync(BaseUrl + "/");
+
+            await Expect(Page.Locator(".route-pin")).ToHaveCountAsync(4);
+
+            // Both journeys' Rome pins (their first stop, at near-identical coordinates)
+            // stay visible and offset from each other rather than overlapping.
+            var romePins = Page.Locator(".route-pin__num", new PageLocatorOptions { HasTextString = "1" });
+            await Expect(romePins).ToHaveCountAsync(2);
+            await Expect(romePins.Nth(0)).ToBeVisibleAsync();
+            await Expect(romePins.Nth(1)).ToBeVisibleAsync();
+
+            var first = await romePins.Nth(0).BoundingBoxAsync();
+            var second = await romePins.Nth(1).BoundingBoxAsync();
+            var firstCentre = first!.X + (first.Width / 2);
+            var secondCentre = second!.X + (second.Width / 2);
+            Assert.That(Math.Abs(firstCentre - secondCentre), Is.GreaterThan(10), "a shared port at slightly different coordinates must still fan its pins apart");
+        }
+
+        [Test]
         public async Task A_route_whose_geometry_stops_short_of_its_ports_is_tied_back_to_the_pins()
         {
             await BlockTilesAsync();
@@ -307,6 +363,30 @@ namespace AalgTrips.UITests
 
             // The detail page for the seeded journey renders its itinerary.
             await Expect(Page.Locator(".itinerary-table")).ToBeVisibleAsync();
+        }
+
+        [Test]
+        public async Task Journey_card_shows_its_route_colour_as_a_bottom_strip()
+        {
+            await Page.GotoAsync(BaseUrl + "/");
+
+            var card = Page.Locator($".journey-card[href='/journey/{ServerFixture.SampleJourneySlug}/']");
+            await Expect(card).ToHaveCountAsync(1);
+
+            // The card carries its route colour; the seeded journey sets none, so it is
+            // the default the map also falls back to (#0e6e78).
+            var routeColor = await card.EvaluateAsync<string>(
+                "el => getComputedStyle(el).getPropertyValue('--route-color').trim()");
+            Assert.That(routeColor, Is.EqualTo("#0e6e78"), "the journey card must carry its route colour");
+
+            // That colour is painted as a strip along the bottom edge of the card.
+            var stripColor = await card.EvaluateAsync<string>(
+                "el => getComputedStyle(el, '::after').backgroundColor");
+            Assert.That(stripColor, Is.EqualTo("rgb(14, 110, 120)"), "the bottom strip is painted in the route colour");
+
+            var stripHeight = await card.EvaluateAsync<string>(
+                "el => getComputedStyle(el, '::after').height");
+            Assert.That(stripHeight, Is.EqualTo("5px"), "the route-colour strip runs along the bottom of the card");
         }
 
         private Task BlockTilesAsync()
