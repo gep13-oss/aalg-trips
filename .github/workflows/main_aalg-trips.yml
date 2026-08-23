@@ -78,8 +78,11 @@ jobs:
           AALG_TRIPS_BLOB_CONNECTION: UseDevelopmentStorage=true
         run: dotnet cake.cs --target=Test
 
+      # -p:SourceRevisionId stamps the deployed commit into the assembly's
+      # informational version; BuildInfo reads it back so the site footer shows
+      # which revision is live.
       - name: Publish
-        run: dotnet publish src/AalgTrips/AalgTrips.csproj -c Release -o ${{ github.workspace }}/publish
+        run: dotnet publish src/AalgTrips/AalgTrips.csproj -c Release -o ${{ github.workspace }}/publish -p:SourceRevisionId=${{ github.sha }}
 
       - name: Upload published app
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

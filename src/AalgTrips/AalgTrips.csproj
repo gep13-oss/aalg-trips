@@ -7,6 +7,18 @@
         <UserSecretsId>5966cb71-2501-4cab-a0aa-77b24d37f516</UserSecretsId>
     </PropertyGroup>
 
+    <!-- Stamp the git commit into the assembly's informational version, so the
+         site footer can show which revision is live (see BuildInfo). CI passes the
+         authoritative value on publish (-p:SourceRevisionId=$GITHUB_SHA); this
+         target fills it in from git for a local build. It is a no-op when the value
+         was already supplied or when git/the repo is absent (ContinueOnError), and
+         must run before the SDK folds the revision into the informational version. -->
+    <Target Name="SetGitSourceRevisionId" BeforeTargets="GetAssemblyVersion" Condition="'$(SourceRevisionId)' == ''">
+        <Exec Command="git rev-parse HEAD" ConsoleToMSBuild="true" StandardOutputImportance="Low" ContinueOnError="true">
+            <Output TaskParameter="ConsoleOutput" PropertyName="SourceRevisionId" />
+        </Exec>
+    </Target>
+
     <ItemGroup>
         <PackageReference Include="SkiaSharp" Version="2.88.9" />
         <!-- The SkiaSharp package only ships Windows/macOS native binaries. This

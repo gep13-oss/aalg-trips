@@ -34,7 +34,17 @@
     <footer class="site-footer">
         <div class="container">
             <span class="site-footer__mark">AALG Trips</span>
-            <span class="site-footer__note">A family travel journal</span>
+            <span class="site-footer__meta">
+                <span class="site-footer__note">A family travel journal</span>
+                @if (!string.IsNullOrEmpty(BuildInfo.ShortSha))
+                {
+                    <a class="site-footer__build" href="@BuildInfo.CommitUrl" title="Built from commit @BuildInfo.CommitSha" target="_blank" rel="noopener noreferrer">@BuildInfo.ShortSha</a>
+                }
+                else
+                {
+                    <span class="site-footer__build" title="Local development build">dev</span>
+                }
+            </span>
         </div>
         <meta itemprop="description" content="@ViewData["Description"]" />
         <meta itemprop="image" content="@ViewData["Image"]" />

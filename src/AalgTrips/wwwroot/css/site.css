@@ -157,11 +157,31 @@ img {
     font-weight: 700;
 }
 
+.site-footer__meta {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+}
+
 .site-footer__note {
     font: .74rem/1 var(--font-mono);
     letter-spacing: .08em;
     text-transform: uppercase;
     color: var(--muted);
+}
+
+.site-footer__build {
+    font: .74rem/1 var(--font-mono);
+    letter-spacing: .04em;
+    color: var(--muted);
+    text-decoration: none;
+    opacity: .75;
+}
+
+a.site-footer__build:hover,
+a.site-footer__build:focus-visible {
+    opacity: 1;
+    text-decoration: underline;
 }
 
 .site-main {
