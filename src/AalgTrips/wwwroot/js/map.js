@@ -37,14 +37,32 @@
     // reads as a numbered waypoint on the route rather than a trip. A local divIcon,
     // no CDN; the sequence number and the journey's route colour are stamped in per
     // stop so the visit order and which journey it belongs to are both clear.
-    function waypointIconFor(sequence, color) {
+    //
+    // offsetX nudges the badge sideways (in pixels) from the exact point: two journeys
+    // that call at the very same port would otherwise stack one pin over the other and
+    // hide it, so a shared location fans its pins apart. It shifts the anchor rather
+    // than the coordinate, so the spread is constant at every zoom.
+    function waypointIconFor(sequence, color, offsetX) {
+        const dx = offsetX || 0;
+
         return L.divIcon({
             className: "route-pin",
             html: "<span class=\"route-pin__num\" style=\"background:" + color + "\">" + sequence + "</span>",
             iconSize: [22, 22],
-            iconAnchor: [11, 11],
-            tooltipAnchor: [0, -11],
+            iconAnchor: [11 - dx, 11],
+            tooltipAnchor: [dx, -11],
         });
+    }
+
+    // Two waypoint pins at the same port sit this many pixels apart when fanned out.
+    const sharedPortPinSpacing = 30;
+
+    // Geometry endpoints nearer than this (in degrees, ~11m) to a terminal waypoint are
+    // treated as already meeting it; farther apart, the route is tied back to the pin.
+    const routeTieEpsilon = 1e-4;
+
+    function samePoint(a, b) {
+        return Math.abs(a[0] - b[0]) < routeTieEpsilon && Math.abs(a[1] - b[1]) < routeTieEpsilon;
     }
 
     const map = L.map(mapElement);
@@ -183,6 +201,11 @@
             bySlug[marker.Slug] = [marker.Lat, marker.Long];
         });
 
+        // Waypoint pins are collected across every journey first and drawn once the
+        // routes are in, so two journeys calling at the same port can be fanned apart
+        // (a per-journey pass only sees its own stops and would let one pin hide another).
+        const allPins = [];
+
         journeyRoutes.forEach((journey) => {
             const waypoints = Array.isArray(journey.Waypoints) ? journey.Waypoints : [];
             const color = journey.Color || defaultRouteColor;
@@ -192,12 +215,34 @@
             // polyline per segment, dashed for a travel hop (a flight/transit) and
             // solid for a covered track. Without geometry the line falls back to
             // straight hops between the waypoints.
-            const segments = Array.isArray(journey.Geometry) && journey.Geometry.length > 0
+            const hasGeometry = Array.isArray(journey.Geometry) && journey.Geometry.length > 0;
+            const waypointPoints = waypoints.map((w) => [w.Lat, w.Long]);
+            const segments = hasGeometry
                 ? journey.Geometry
-                : [{ Points: waypoints.map((w) => [w.Lat, w.Long]), Travel: false }];
+                : [{ Points: waypointPoints, Travel: false }];
 
-            segments.forEach((segment) => {
-                const points = Array.isArray(segment.Points) ? segment.Points : [];
+            segments.forEach((segment, segmentIndex) => {
+                let points = Array.isArray(segment.Points) ? segment.Points.slice() : [];
+
+                // An uploaded sea track can begin and end a little off the port (the
+                // ship's channel in and out), leaving the line hanging short of its
+                // start/end pin — and a round trip's two open ends never close. Tie the
+                // first and last segment back to their terminal waypoints, but only when
+                // there is an actual gap, so a track that already meets its port is left
+                // exactly as drawn.
+                if (hasGeometry && waypointPoints.length > 0 && points.length > 0) {
+                    if (segmentIndex === 0 && !samePoint(points[0], waypointPoints[0])) {
+                        points.unshift(waypointPoints[0]);
+                    }
+
+                    if (segmentIndex === segments.length - 1) {
+                        const lastWaypoint = waypointPoints[waypointPoints.length - 1];
+
+                        if (!samePoint(points[points.length - 1], lastWaypoint)) {
+                            points.push(lastWaypoint);
+                        }
+                    }
+                }
 
                 if (points.length >= 2) {
                     L.polyline(points, {
@@ -236,9 +281,8 @@
 
             // Waypoint pins. A round-trip journey can call at the same place twice
             // (start and return), which would stack the later pin exactly over the
-            // first and hide it. Group the waypoints by coordinate and draw a single
-            // pin per location, badged with every visit's sequence number ("1 · 6"),
-            // so a shared start/end reads as both.
+            // first and hide it. Group the waypoints by coordinate so a shared
+            // start/end reads as a single pin badged with both visit numbers ("1 · 6").
             const pinsByLocation = new Map();
             waypoints.forEach((waypoint, index) => {
                 const key = waypoint.Lat + "," + waypoint.Long;
@@ -252,15 +296,47 @@
                 group.visits.push(Object.assign({ Seq: index + 1 }, waypoint));
             });
 
-            pinsByLocation.forEach((group) => {
-                const label = group.visits.map((visit) => visit.Seq).join(" · ");
+            pinsByLocation.forEach((group, key) => {
+                allPins.push({
+                    key: key,
+                    position: group.position,
+                    label: group.visits.map((visit) => visit.Seq).join(" · "),
+                    color: color,
+                    journey: journey,
+                    visits: group.visits,
+                    layer: targetLayer,
+                });
+            });
+        });
 
-                L.marker(group.position, { icon: waypointIconFor(label, color) })
-                    .bindTooltip(waypointTooltip(journey, group.visits), { direction: "top", offset: [0, -11] })
+        // Draw the collected pins. Pins that landed on the same coordinate belong to
+        // different journeys (a port two cruises both call at); fan them out so every
+        // journey's stop number stays visible instead of the last-drawn pin hiding the
+        // rest. A lone pin sits dead on its point.
+        const pinsByCoord = new Map();
+        allPins.forEach((pin) => {
+            let list = pinsByCoord.get(pin.key);
+
+            if (!list) {
+                list = [];
+                pinsByCoord.set(pin.key, list);
+            }
+
+            list.push(pin);
+        });
+
+        pinsByCoord.forEach((pins) => {
+            const count = pins.length;
+
+            pins.forEach((pin, index) => {
+                const offsetX = count > 1 ? (index - (count - 1) / 2) * sharedPortPinSpacing : 0;
+
+                L.marker(pin.position, { icon: waypointIconFor(pin.label, pin.color, offsetX) })
+                    .bindTooltip(waypointTooltip(pin.journey, pin.visits), { direction: "top", offset: [offsetX, -11] })
                     .on("click", () => {
-                        window.location.href = "journey/" + journey.Slug;
+                        window.location.href = "journey/" + pin.journey.Slug;
                     })
-                    .addTo(targetLayer);
+                    .addTo(pin.layer);
             });
         });
 

@@ -190,6 +190,111 @@ namespace AalgTrips.UITests
         }
 
         [Test]
+        public async Task Two_journeys_calling_at_the_same_port_fan_their_pins_apart()
+        {
+            await BlockTilesAsync();
+
+            // Two journeys that both call at Rome (identical coordinates). A per-journey
+            // pass would draw the second pin exactly over the first and hide it; the
+            // shared port must show both journeys' stop pins at once.
+            await StubMarkersAsync(41.89, 12.49, "colosseum", "Colosseum");
+            await StubJourneysAsync(JsonSerializer.Serialize(new[]
+            {
+                new
+                {
+                    Slug = "med-journey",
+                    Name = "Med Journey",
+                    Kind = "Cruise",
+                    Color = "#e11d48",
+                    Waypoints = new[]
+                    {
+                        new { Lat = 41.90, Long = 12.50, Name = "Rome", Trips = System.Array.Empty<string>() },
+                        new { Lat = 40.85, Long = 14.27, Name = "Naples", Trips = System.Array.Empty<string>() },
+                    },
+                },
+                new
+                {
+                    Slug = "tyrrhenian-journey",
+                    Name = "Tyrrhenian Journey",
+                    Kind = "Cruise",
+                    Color = "#0ea5e9",
+                    Waypoints = new[]
+                    {
+                        new { Lat = 41.90, Long = 12.50, Name = "Rome", Trips = System.Array.Empty<string>() },
+                        new { Lat = 38.11, Long = 13.36, Name = "Palermo", Trips = System.Array.Empty<string>() },
+                    },
+                },
+            }));
+
+            await Page.GotoAsync(BaseUrl + "/");
+
+            // Four stops across the two journeys -> four pins, none hidden.
+            await Expect(Page.Locator(".route-pin")).ToHaveCountAsync(4);
+
+            // Both journeys' Rome pins (their first stop) are present and offset from
+            // each other rather than stacked on the same point.
+            var romePins = Page.Locator(".route-pin__num", new PageLocatorOptions { HasTextString = "1" });
+            await Expect(romePins).ToHaveCountAsync(2);
+            await Expect(romePins.Nth(0)).ToBeVisibleAsync();
+            await Expect(romePins.Nth(1)).ToBeVisibleAsync();
+
+            var first = await romePins.Nth(0).BoundingBoxAsync();
+            var second = await romePins.Nth(1).BoundingBoxAsync();
+            var firstCentre = first!.X + (first.Width / 2);
+            var secondCentre = second!.X + (second.Width / 2);
+            Assert.That(Math.Abs(firstCentre - secondCentre), Is.GreaterThan(10), "two journeys sharing a port must fan their pins apart, not stack them");
+        }
+
+        [Test]
+        public async Task A_route_whose_geometry_stops_short_of_its_ports_is_tied_back_to_the_pins()
+        {
+            await BlockTilesAsync();
+
+            // An uploaded route whose track starts and ends a little off the ports (as a
+            // real sea track does at the channel in/out). The drawn line must be tied
+            // back to the Rome and Naples pins, adding a leg at each end, so it does not
+            // hang disconnected from its waypoints.
+            await StubMarkersAsync(41.89, 12.49, "colosseum", "Colosseum");
+            await StubJourneysAsync(JsonSerializer.Serialize(new[]
+            {
+                new
+                {
+                    Slug = "med-journey",
+                    Name = "Med Journey",
+                    Color = "#e11d48",
+                    Waypoints = new[]
+                    {
+                        new { Lat = 41.90, Long = 12.50, Name = "Rome", Trips = System.Array.Empty<string>() },
+                        new { Lat = 40.85, Long = 14.27, Name = "Naples", Trips = System.Array.Empty<string>() },
+                    },
+                    Geometry = new[]
+                    {
+                        new
+                        {
+                            Points = new[]
+                            {
+                                new[] { 41.80, 12.60 },
+                                new[] { 41.50, 13.00 },
+                                new[] { 41.00, 13.80 },
+                                new[] { 40.95, 14.20 },
+                            },
+                            Travel = false,
+                        },
+                    },
+                },
+            }));
+
+            await Page.GotoAsync(BaseUrl + "/");
+
+            await Expect(Page.Locator("path.journey-route")).ToHaveCountAsync(1);
+
+            // Four geometry points plus a tie-in leg at each end -> six points, i.e. five
+            // line segments, where the untied geometry alone would draw three.
+            await Expect(Page.Locator("path.journey-route"))
+                .ToHaveAttributeAsync("d", new Regex(@"^M[^L]*(?:L[^L]*){5}$"));
+        }
+
+        [Test]
         public async Task Home_page_lists_journey_cards_that_link_through()
         {
             await Page.GotoAsync(BaseUrl + "/");
