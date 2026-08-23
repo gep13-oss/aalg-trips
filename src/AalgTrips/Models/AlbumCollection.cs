@@ -147,7 +147,7 @@ namespace AalgTrips.Models
                         Long = a.Longitude,
                         Slug = a.Id,
                         Name = a.DisplayName,
-                        Date = a.Visited.ToString("MMM yyyy", CultureInfo.InvariantCulture),
+                        Date = a.Visited.ToString("d MMM yyyy", CultureInfo.InvariantCulture),
                         Photos = a.Photos.Count,
                         Castle = a.CastleVisited,
                         People = a.People,

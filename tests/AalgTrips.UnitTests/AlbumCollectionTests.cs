@@ -95,10 +95,11 @@ namespace AalgTrips.UnitTests
                 Assert.That(paris.Lat, Is.EqualTo(48.85));
                 Assert.That(paris.Long, Is.EqualTo(2.35));
 
-                // The tooltip fields: display name, invariant "MMM yyyy" date, and
-                // the album's photo count travel with each marker.
+                // The tooltip fields: display name, invariant "d MMM yyyy" date (with the
+                // day, to match the trip card, the album page and the port pin), and the
+                // album's photo count travel with each marker.
                 Assert.That(paris.Name, Is.EqualTo("Paris"));
-                Assert.That(paris.Date, Is.EqualTo("Jan 2026"));
+                Assert.That(paris.Date, Is.EqualTo("15 Jan 2026"));
                 Assert.That(paris.Photos, Is.EqualTo(2));
             });
         }
