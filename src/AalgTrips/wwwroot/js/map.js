@@ -21,14 +21,21 @@
     // markers render without reaching out to a CDN.
     L.Icon.Default.imagePath = "/lib/leaflet/images/";
 
-    // A castle trip's pin: a small round CSS marker (styled in site.css). Using a
-    // divIcon keeps it a local asset with no extra image download.
+    // A castle trip's pin: an amber round badge stamped with a white castle glyph
+    // (a crenellated wall with a gateway), so a castle trip reads as a castle at a
+    // glance rather than an anonymous dot. The glyph is inline SVG in the divIcon —
+    // still a local, no-download, no-dependency asset, crisp at every zoom. Its
+    // evenodd fill leaves the gateway open so the amber badge shows through it.
+    const castleGlyph =
+        "<svg class=\"castle-pin__glyph\" viewBox=\"0 0 24 24\" aria-hidden=\"true\">"
+        + "<path fill-rule=\"evenodd\" d=\"M4 21 V5 H8 V8 H10 V5 H14 V8 H16 V5 H20 V21 Z "
+        + "M10 21 V15 a2 2 0 0 1 4 0 V21 Z\"/></svg>";
     const castleIcon = L.divIcon({
         className: "castle-pin",
-        html: "<span class=\"castle-pin__dot\"></span>",
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
-        tooltipAnchor: [0, -10],
+        html: "<span class=\"castle-pin__badge\">" + castleGlyph + "</span>",
+        iconSize: [24, 24],
+        iconAnchor: [12, 12],
+        tooltipAnchor: [0, -12],
     });
 
     // The route colour a journey falls back to when it has not chosen one.

@@ -83,8 +83,10 @@ namespace AalgTrips.UITests
             {
                 await Page.GotoAsync(BaseUrl + "/");
 
-                // The castle trip renders as the custom divIcon pin...
+                // The castle trip renders as the custom divIcon pin, stamped with the
+                // castle glyph (inline SVG) rather than a plain dot...
                 await Expect(Page.Locator(".castle-pin")).ToBeVisibleAsync();
+                await Expect(Page.Locator(".castle-pin .castle-pin__glyph")).ToBeVisibleAsync();
 
                 // ...while at least one default Leaflet image marker (the non-castle
                 // sample trip) is also on the map.
