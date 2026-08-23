@@ -30,6 +30,15 @@ namespace AalgTrips.TagHelpers
                 string thumb = Photo.GetThumbnailLink((int)ImageType.Thumbnail, out int thumbHeight);
                 string cover = Photo.GetThumbnailLink((int)ImageType.Cover, out int coverHeight);
                 output.Attributes.SetAttribute("srcset", $"{thumb} 1x, {cover} 2x");
+
+                // Album grids can hold dozens of photos; without this the browser
+                // requests every thumbnail — including ones far below the fold —
+                // the moment the page loads, and each one is proxied through the
+                // authenticated media endpoint. Defer off-screen thumbnails so the
+                // visible grid renders fast and the rest stream in on scroll. The
+                // width/height set above keep the layout stable as they arrive.
+                output.Attributes.SetAttribute("loading", "lazy");
+                output.Attributes.SetAttribute("decoding", "async");
             }
         }
     }
