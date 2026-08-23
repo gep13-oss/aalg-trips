@@ -2,13 +2,13 @@
 @using AalgTrips.Models
 @model ItineraryEditorModel
 @{
-    var stops = Model.Stops ?? new List<CruiseStop>();
+    var stops = Model.Stops ?? new List<JourneyStop>();
     var albums = Model.Albums ?? new List<Album>();
 }
 <div class="field field--itinerary">
     <span class="field__legend">Itinerary</span>
-    <p class="trip-form__hint">Add a stop for each port or day at sea, in order. The first stop is the
-        departure; days at sea have no coordinates and are skipped on the map route.</p>
+    <p class="trip-form__hint">Add a stop for each place or travel day, in order. The first stop is the
+        start; travel days have no coordinates and are skipped on the map route.</p>
     <div class="itinerary-editor" data-itinerary>
         <div class="itinerary-rows" data-itinerary-rows>
             @for (var i = 0; i < stops.Count; i++)
@@ -18,7 +18,7 @@
             }
         </div>
 
-        @* The template row is inert until cruise-admin.js clones it: its field names
+        @* The template row is inert until journey-admin.js clones it: its field names
            carry the __INDEX__ placeholder, which the script rewrites to the row's
            position before it is appended to the form. *@
         <template data-stop-template>

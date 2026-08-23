@@ -5,14 +5,14 @@ using Microsoft.Playwright;
 namespace AalgTrips.UITests
 {
     /// <summary>
-    /// Covers the cruise map + home integration: map.js draws each cruise as a route
+    /// Covers the journey map + home integration: map.js draws each journey as a route
     /// line through its ports, a distinct port pin per port, and a dotted connector
-    /// from a port to each trip done from it; and the home page lists cruise cards
+    /// from a port to each trip done from it; and the home page lists journey cards
     /// that link through to the detail page. The map assertions ride on stubbed
-    /// markers/cruises so they are independent of the shared seeded state.
+    /// markers/journeys so they are independent of the shared seeded state.
     /// </summary>
     [TestFixture]
-    public class CruiseMapTests : UITestBase
+    public class JourneyMapTests : UITestBase
     {
         [SetUp]
         public async Task SignIn()
@@ -21,21 +21,21 @@ namespace AalgTrips.UITests
         }
 
         [Test]
-        public async Task A_cruise_route_is_drawn_with_port_pins_and_a_trip_connector()
+        public async Task A_journey_route_is_drawn_with_port_pins_and_a_trip_connector()
         {
             await BlockTilesAsync();
 
-            // One trip (its pin resolves the connector target) and a two-port cruise
+            // One trip (its pin resolves the connector target) and a two-port journey
             // whose first port links that trip; the second port links nothing.
             await StubMarkersAsync(41.89, 12.49, "colosseum", "Colosseum");
-            await StubCruisesAsync(JsonSerializer.Serialize(new[]
+            await StubJourneysAsync(JsonSerializer.Serialize(new[]
             {
                 new
                 {
-                    Slug = "med-cruise",
-                    Name = "Med Cruise",
+                    Slug = "med-journey",
+                    Name = "Med Journey",
                     Color = "#e11d48",
-                    Ports = new[]
+                    Waypoints = new[]
                     {
                         new { Lat = 41.90, Long = 12.50, Name = "Rome", Date = "15 Jul 2025", Arrive = (string?)null, Depart = "18:00", Trips = new[] { "colosseum" } },
                         new { Lat = 40.85, Long = 14.27, Name = "Naples", Date = "18 Jul 2025", Arrive = (string?)"07:00", Depart = "17:00", Trips = System.Array.Empty<string>() },
@@ -46,18 +46,18 @@ namespace AalgTrips.UITests
             await Page.GotoAsync(BaseUrl + "/");
 
             // Two ports -> two port pins and one route line through them.
-            await Expect(Page.Locator(".port-pin")).ToHaveCountAsync(2);
-            await Expect(Page.Locator("path.cruise-route")).ToHaveCountAsync(1);
+            await Expect(Page.Locator(".route-pin")).ToHaveCountAsync(2);
+            await Expect(Page.Locator("path.journey-route")).ToHaveCountAsync(1);
 
             // Only the first port links a trip, so exactly one dotted connector.
-            await Expect(Page.Locator("path.cruise-connector")).ToHaveCountAsync(1);
+            await Expect(Page.Locator("path.journey-connector")).ToHaveCountAsync(1);
 
-            // The route is drawn in the cruise's chosen colour.
-            await Expect(Page.Locator("path.cruise-route")).ToHaveAttributeAsync("stroke", "#e11d48");
+            // The route is drawn in the journey's chosen colour.
+            await Expect(Page.Locator("path.journey-route")).ToHaveAttributeAsync("stroke", "#e11d48");
 
             // The port pins are numbered in visit order.
-            await Expect(Page.Locator(".port-pin__num").Nth(0)).ToHaveTextAsync("1");
-            await Expect(Page.Locator(".port-pin__num").Nth(1)).ToHaveTextAsync("2");
+            await Expect(Page.Locator(".route-pin__num").Nth(0)).ToHaveTextAsync("1");
+            await Expect(Page.Locator(".route-pin__num").Nth(1)).ToHaveTextAsync("2");
         }
 
         [Test]
@@ -70,14 +70,14 @@ namespace AalgTrips.UITests
             // port must collapse into a single pin so the return does not hide the
             // start.
             await StubMarkersAsync(41.89, 12.49, "colosseum", "Colosseum");
-            await StubCruisesAsync(JsonSerializer.Serialize(new[]
+            await StubJourneysAsync(JsonSerializer.Serialize(new[]
             {
                 new
                 {
-                    Slug = "med-cruise",
-                    Name = "Med Cruise",
+                    Slug = "med-journey",
+                    Name = "Med Journey",
                     Color = "#e11d48",
-                    Ports = new[]
+                    Waypoints = new[]
                     {
                         new { Lat = 41.90, Long = 12.50, Name = "Rome", Date = "15 Jul 2025", Arrive = (string?)null, Depart = (string?)"18:00", Trips = new[] { "colosseum" } },
                         new { Lat = 40.85, Long = 14.27, Name = "Naples", Date = "18 Jul 2025", Arrive = (string?)"07:00", Depart = (string?)"17:00", Trips = System.Array.Empty<string>() },
@@ -89,11 +89,11 @@ namespace AalgTrips.UITests
             await Page.GotoAsync(BaseUrl + "/");
 
             // Three stops but only two distinct locations -> two pins.
-            await Expect(Page.Locator(".port-pin")).ToHaveCountAsync(2);
+            await Expect(Page.Locator(".route-pin")).ToHaveCountAsync(2);
 
             // The shared start/end port is badged with both of its visit numbers.
-            var combined = Page.Locator(".port-pin__num", new PageLocatorOptions { HasTextString = "1 · 3" });
-            var single = Page.Locator(".port-pin__num", new PageLocatorOptions { HasTextString = "2" });
+            var combined = Page.Locator(".route-pin__num", new PageLocatorOptions { HasTextString = "1 · 3" });
+            var single = Page.Locator(".route-pin__num", new PageLocatorOptions { HasTextString = "2" });
             await Expect(combined).ToHaveCountAsync(1);
             await Expect(single).ToHaveCountAsync(1);
 
@@ -109,55 +109,98 @@ namespace AalgTrips.UITests
         {
             await BlockTilesAsync();
 
-            // A two-port cruise that also carries an uploaded route: a four-point line
+            // A two-port journey that also carries an uploaded route: a four-point line
             // between the ports (a stand-in for an offline-computed sea route). The
             // drawn polyline should follow all four points, not join the two ports
             // with a single straight segment.
             await StubMarkersAsync(41.89, 12.49, "colosseum", "Colosseum");
-            await StubCruisesAsync(JsonSerializer.Serialize(new[]
+            await StubJourneysAsync(JsonSerializer.Serialize(new[]
             {
                 new
                 {
-                    Slug = "med-cruise",
-                    Name = "Med Cruise",
+                    Slug = "med-journey",
+                    Name = "Med Journey",
                     Color = "#e11d48",
-                    Ports = new[]
+                    Waypoints = new[]
                     {
                         new { Lat = 41.90, Long = 12.50, Name = "Rome", Trips = System.Array.Empty<string>() },
                         new { Lat = 40.85, Long = 14.27, Name = "Naples", Trips = System.Array.Empty<string>() },
                     },
                     Geometry = new[]
                     {
-                        new[] { 41.90, 12.50 },
-                        new[] { 41.50, 13.00 },
-                        new[] { 41.00, 13.80 },
-                        new[] { 40.85, 14.27 },
+                        new
+                        {
+                            Points = new[]
+                            {
+                                new[] { 41.90, 12.50 },
+                                new[] { 41.50, 13.00 },
+                                new[] { 41.00, 13.80 },
+                                new[] { 40.85, 14.27 },
+                            },
+                            Travel = false,
+                        },
                     },
                 },
             }));
 
             await Page.GotoAsync(BaseUrl + "/");
 
-            await Expect(Page.Locator("path.cruise-route")).ToHaveCountAsync(1);
+            await Expect(Page.Locator("path.journey-route")).ToHaveCountAsync(1);
 
             // Leaflet renders the polyline as "M…L…L…L…"; a route through 4 points has
             // exactly three line segments, where the 2-port fallback would have one.
-            await Expect(Page.Locator("path.cruise-route"))
+            await Expect(Page.Locator("path.journey-route"))
                 .ToHaveAttributeAsync("d", new Regex(@"^M[^L]*(?:L[^L]*){3}$"));
         }
 
         [Test]
-        public async Task Home_page_lists_cruise_cards_that_link_through()
+        public async Task A_travel_segment_is_drawn_dashed_and_a_covered_segment_solid()
+        {
+            await BlockTilesAsync();
+
+            // A two-segment route: a solid covered track then a dashed travel hop (a
+            // flight from Beijing to Xi'an), as a trek's uploaded route would carry.
+            await StubMarkersAsync(39.90, 116.40, "forbidden-city", "Forbidden City");
+            await StubJourneysAsync(JsonSerializer.Serialize(new[]
+            {
+                new
+                {
+                    Slug = "great-wall",
+                    Name = "Great Wall Trek",
+                    Kind = "Trek",
+                    Color = "#e11d48",
+                    Waypoints = new[]
+                    {
+                        new { Lat = 40.00, Long = 116.00, Name = "Beijing", Trips = System.Array.Empty<string>() },
+                        new { Lat = 34.26, Long = 108.94, Name = "Xi'an", Trips = System.Array.Empty<string>() },
+                    },
+                    Geometry = new object[]
+                    {
+                        new { Points = new[] { new[] { 40.00, 116.00 }, new[] { 39.90, 116.40 } }, Travel = false },
+                        new { Points = new[] { new[] { 39.90, 116.40 }, new[] { 34.26, 108.94 } }, Travel = true },
+                    },
+                },
+            }));
+
+            await Page.GotoAsync(BaseUrl + "/");
+
+            // Two segments -> two route polylines; exactly one of them is dashed.
+            await Expect(Page.Locator("path.journey-route")).ToHaveCountAsync(2);
+            await Expect(Page.Locator("path.journey-route[stroke-dasharray]")).ToHaveCountAsync(1);
+        }
+
+        [Test]
+        public async Task Home_page_lists_journey_cards_that_link_through()
         {
             await Page.GotoAsync(BaseUrl + "/");
 
-            var card = Page.Locator($".cruise-card[href='/cruise/{ServerFixture.SampleCruiseSlug}/']");
+            var card = Page.Locator($".journey-card[href='/journey/{ServerFixture.SampleJourneySlug}/']");
             await Expect(card).ToHaveCountAsync(1);
 
             await card.ClickAsync();
-            await Page.WaitForURLAsync(new Regex($"/cruise/{ServerFixture.SampleCruiseSlug}/$"));
+            await Page.WaitForURLAsync(new Regex($"/journey/{ServerFixture.SampleJourneySlug}/$"));
 
-            // The detail page for the seeded cruise renders its itinerary.
+            // The detail page for the seeded journey renders its itinerary.
             await Expect(Page.Locator(".itinerary-table")).ToBeVisibleAsync();
         }
 
@@ -180,9 +223,9 @@ namespace AalgTrips.UITests
             }));
         }
 
-        private Task StubCruisesAsync(string body)
+        private Task StubJourneysAsync(string body)
         {
-            return Page.RouteAsync("**/albums/cruises.json**", route => route.FulfillAsync(new RouteFulfillOptions
+            return Page.RouteAsync("**/albums/journeys.json**", route => route.FulfillAsync(new RouteFulfillOptions
             {
                 ContentType = "application/json",
                 Body = body,

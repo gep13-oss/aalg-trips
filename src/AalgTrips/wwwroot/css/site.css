@@ -562,14 +562,14 @@ dialog.modal::backdrop {
     box-shadow: 0 1px 4px rgba(21, 39, 44, .45);
 }
 
-/* A cruise port's map pin (Leaflet divIcon from map.js): a teal square that reads
+/* A journey port's map pin (Leaflet divIcon from map.js): a teal square that reads
    as a route waypoint rather than a trip. Local CSS only, no asset. */
-.port-pin {
+.route-pin {
     background: none;
     border: 0;
 }
 
-.port-pin__num {
+.route-pin__num {
     /* Anchor the badge's centre on the point (the 22px icon's centre) and let it
        size to its label — a single digit stays a 22px square, while a wider
        "1 · 6" pill (a round-trip port docked at twice) grows symmetrically about
@@ -593,11 +593,11 @@ dialog.modal::backdrop {
     white-space: nowrap;
 }
 
-/* The cruise route line and its dotted trip connectors (Leaflet SVG paths tagged
+/* The journey route line and its dotted trip connectors (Leaflet SVG paths tagged
    with a className from map.js); most of the stroke styling is set inline on the
    path, this just softens the joins. */
-.cruise-route,
-.cruise-connector {
+.journey-route,
+.journey-connector {
     stroke-linecap: round;
     stroke-linejoin: round;
 }
@@ -1266,9 +1266,9 @@ dialog.modal::backdrop {
     }
 }
 
-/* ---- Cruises: itinerary editor & detail page ---------------------------- */
+/* ---- Journeys: itinerary editor & detail page ---------------------------- */
 
-/* The cruise modals carry the itinerary editor, so they need more room than the
+/* The journey modals carry the itinerary editor, so they need more room than the
    trip modal's 560px. */
 dialog.modal--wide {
     width: min(880px, calc(100vw - 2rem));
@@ -1346,8 +1346,8 @@ dialog.modal--wide {
     opacity: .55;
 }
 
-/* Cruise detail — itinerary table. */
-.cruise-itinerary {
+/* Journey detail — itinerary table. */
+.journey-itinerary {
     margin: 0 0 2.5rem;
 }
 
@@ -1376,11 +1376,11 @@ dialog.modal--wide {
     color: var(--muted);
 }
 
-.itinerary-row--sea {
+.itinerary-row--travel {
     color: var(--muted);
 }
 
-.itinerary-sea-tag {
+.itinerary-travel-tag {
     display: inline-block;
     margin-left: .5ch;
     padding: .05rem .45rem;
@@ -1424,41 +1424,41 @@ dialog.modal--wide {
     font-size: .85rem;
 }
 
-/* The home "Cruises" section sits below the trips with clear breathing room. */
-.cruises {
+/* The home "Journeys" section sits below the trips with clear breathing room. */
+.journeys {
     margin-top: 3rem;
 }
 
-/* Home "Cruises" cards reuse .trip-card; a cruise with no linked-trip cover shows
+/* Home "Journeys" cards reuse .trip-card; a journey with no linked-trip cover shows
    a ship glyph centred in the media panel instead. */
-.cruise-card__counts {
+.journey-card__counts {
     margin: .15rem 0 0;
     font: 600 .7rem/1.4 var(--font-mono);
     letter-spacing: .04em;
     color: var(--muted);
 }
 
-.cruise-card__icon {
+.journey-card__icon {
     display: grid;
     place-items: center;
     color: var(--accent);
 }
 
-.cruise-card__icon svg {
+.journey-card__icon svg {
     width: 44px;
     height: 44px;
     opacity: .8;
 }
 
-/* "Part of the … cruise" backlink on a linked trip's album page. */
-.album-head__cruise {
+/* "Part of the … journey" backlink on a linked trip's album page. */
+.album-head__journey {
     display: flex;
     flex-wrap: wrap;
     gap: .3rem .8rem;
     margin: .55rem 0 0;
 }
 
-.album-head__cruise-link {
+.album-head__journey-link {
     display: inline-flex;
     align-items: center;
     gap: .4ch;
@@ -1471,13 +1471,15 @@ dialog.modal--wide {
     background: var(--accent-tint);
 }
 
-.album-head__cruise-link:hover,
-.album-head__cruise-link:focus-visible {
+.album-head__journey-link:hover,
+.album-head__journey-link:focus-visible {
     border-color: var(--accent);
 }
 
-/* The "Cruises" filter chip reads as a content-type toggle, not a trip attribute. */
-.chip--cruises {
+/* The per-kind journey filter chips read as content-type toggles, not trip
+   attributes, so they sit together at the end of the bar. The lead chip pushes the
+   group to the right; the rest follow it. */
+.chip--journeys-lead {
     margin-left: auto;
 }
 

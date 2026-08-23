@@ -39,7 +39,7 @@ namespace AalgTrips.UITests
             await Page.GotoAsync(BaseUrl + "/");
 
             // One seeded album with lat/long -> exactly one Leaflet *image* marker.
-            // Scope to img markers because a cruise route's port pins are divIcon
+            // Scope to img markers because a journey route's port pins are divIcon
             // markers (also .leaflet-marker-icon) drawn on the same map.
             await Expect(Page.Locator("img.leaflet-marker-icon")).ToHaveCountAsync(1);
         }
@@ -50,7 +50,7 @@ namespace AalgTrips.UITests
             await BlockTilesAsync();
             await Page.GotoAsync(BaseUrl + "/");
 
-            // Scope to the album image marker: a cruise route's port pins are divIcon
+            // Scope to the album image marker: a journey route's port pins are divIcon
             // markers (also .leaflet-marker-icon) and would otherwise match here.
             await Page.Locator("img.leaflet-marker-icon").First.ClickAsync();
 

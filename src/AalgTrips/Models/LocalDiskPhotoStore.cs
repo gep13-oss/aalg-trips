@@ -40,7 +40,7 @@ namespace AalgTrips.Models
 
             return Directory.EnumerateDirectories(_root)
                 .Select(d => new DirectoryInfo(d).Name)
-                .Where(name => !name.Equals(PhotoStoreConventions.CruisesFolder, StringComparison.OrdinalIgnoreCase))
+                .Where(name => !name.Equals(PhotoStoreConventions.JourneysFolder, StringComparison.OrdinalIgnoreCase))
                 .ToList();
         }
 
@@ -221,53 +221,53 @@ namespace AalgTrips.Models
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<string> ListCruiseIds()
+        public IReadOnlyList<string> ListJourneyIds()
         {
-            string cruisesRoot = CruisesRoot();
+            string journeysRoot = JourneysRoot();
 
-            if (!Directory.Exists(cruisesRoot))
+            if (!Directory.Exists(journeysRoot))
             {
                 return Array.Empty<string>();
             }
 
-            return Directory.EnumerateDirectories(cruisesRoot)
+            return Directory.EnumerateDirectories(journeysRoot)
                 .Select(d => new DirectoryInfo(d).Name)
                 .ToList();
         }
 
         /// <inheritdoc />
-        public CruiseMetaData TryReadCruise(string cruiseId)
+        public JourneyMetaData TryReadJourney(string journeyId)
         {
-            string metadataPath = Path.Combine(CruiseDir(cruiseId), PhotoStoreConventions.CruiseMetadataFileName);
+            string metadataPath = Path.Combine(JourneyDir(journeyId), PhotoStoreConventions.JourneyMetadataFileName);
 
             if (!File.Exists(metadataPath))
             {
                 return null;
             }
 
-            return JsonSerializer.Deserialize<CruiseMetaData>(File.ReadAllText(metadataPath));
+            return JsonSerializer.Deserialize<JourneyMetaData>(File.ReadAllText(metadataPath));
         }
 
         /// <inheritdoc />
-        public bool CruiseExists(string cruiseId)
+        public bool JourneyExists(string journeyId)
         {
-            return Directory.Exists(CruiseDir(cruiseId));
+            return Directory.Exists(JourneyDir(journeyId));
         }
 
         /// <inheritdoc />
-        public async Task WriteCruiseAsync(string cruiseId, CruiseMetaData metadata)
+        public async Task WriteJourneyAsync(string journeyId, JourneyMetaData metadata)
         {
-            string dir = CruiseDir(cruiseId);
+            string dir = JourneyDir(journeyId);
             Directory.CreateDirectory(dir);
 
-            using var stream = File.Create(Path.Combine(dir, PhotoStoreConventions.CruiseMetadataFileName));
+            using var stream = File.Create(Path.Combine(dir, PhotoStoreConventions.JourneyMetadataFileName));
             await JsonSerializer.SerializeAsync(stream, metadata);
         }
 
         /// <inheritdoc />
-        public Task DeleteCruiseAsync(string cruiseId)
+        public Task DeleteJourneyAsync(string journeyId)
         {
-            string dir = CruiseDir(cruiseId);
+            string dir = JourneyDir(journeyId);
 
             if (Directory.Exists(dir))
             {
@@ -278,10 +278,10 @@ namespace AalgTrips.Models
         }
 
         /// <inheritdoc />
-        public Task RenameCruiseAsync(string oldCruiseId, string newCruiseId)
+        public Task RenameJourneyAsync(string oldJourneyId, string newJourneyId)
         {
-            string source = CruiseDir(oldCruiseId);
-            string destination = CruiseDir(newCruiseId);
+            string source = JourneyDir(oldJourneyId);
+            string destination = JourneyDir(newJourneyId);
 
             if (Directory.Exists(source))
             {
@@ -292,41 +292,41 @@ namespace AalgTrips.Models
         }
 
         /// <inheritdoc />
-        public async Task WriteCruisesAsync(IEnumerable<CruiseRoute> routes)
+        public async Task WriteJourneysAsync(IEnumerable<JourneyRoute> routes)
         {
             Directory.CreateDirectory(_root);
 
-            using var stream = File.Create(Path.Combine(_root, PhotoStoreConventions.CruisesFileName));
+            using var stream = File.Create(Path.Combine(_root, PhotoStoreConventions.JourneysFileName));
             await JsonSerializer.SerializeAsync(stream, routes);
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<double[]> TryReadCruiseRoute(string cruiseId)
+        public IReadOnlyList<RouteSegment> TryReadJourneyRoute(string journeyId)
         {
-            string path = Path.Combine(CruiseDir(cruiseId), PhotoStoreConventions.CruiseRouteFileName);
+            string path = Path.Combine(JourneyDir(journeyId), PhotoStoreConventions.JourneyRouteFileName);
 
             if (!File.Exists(path))
             {
                 return null;
             }
 
-            return JsonSerializer.Deserialize<List<double[]>>(File.ReadAllText(path));
+            return RouteSegment.FromStoredJson(File.ReadAllText(path));
         }
 
         /// <inheritdoc />
-        public async Task SaveCruiseRouteAsync(string cruiseId, IEnumerable<double[]> route)
+        public async Task SaveJourneyRouteAsync(string journeyId, IEnumerable<RouteSegment> route)
         {
-            string dir = CruiseDir(cruiseId);
+            string dir = JourneyDir(journeyId);
             Directory.CreateDirectory(dir);
 
-            using var stream = File.Create(Path.Combine(dir, PhotoStoreConventions.CruiseRouteFileName));
+            using var stream = File.Create(Path.Combine(dir, PhotoStoreConventions.JourneyRouteFileName));
             await JsonSerializer.SerializeAsync(stream, route);
         }
 
         /// <inheritdoc />
-        public Task DeleteCruiseRouteAsync(string cruiseId)
+        public Task DeleteJourneyRouteAsync(string journeyId)
         {
-            string path = Path.Combine(CruiseDir(cruiseId), PhotoStoreConventions.CruiseRouteFileName);
+            string path = Path.Combine(JourneyDir(journeyId), PhotoStoreConventions.JourneyRouteFileName);
 
             if (File.Exists(path))
             {
@@ -382,15 +382,15 @@ namespace AalgTrips.Models
         }
 
         /// <inheritdoc />
-        public string CruisesUrl()
+        public string JourneysUrl()
         {
-            return PhotoStoreConventions.CruisesUrl();
+            return PhotoStoreConventions.JourneysUrl();
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<string> ListCruisePhotoFileNames(string cruiseId, string stopKey)
+        public IReadOnlyList<string> ListJourneyPhotoFileNames(string journeyId, string stopKey)
         {
-            string dir = CruiseStopDir(cruiseId, stopKey);
+            string dir = JourneyStopDir(journeyId, stopKey);
 
             if (!Directory.Exists(dir))
             {
@@ -404,9 +404,9 @@ namespace AalgTrips.Models
         }
 
         /// <inheritdoc />
-        public IReadOnlyList<string> ListCruiseThumbnailFileNames(string cruiseId, string stopKey)
+        public IReadOnlyList<string> ListJourneyThumbnailFileNames(string journeyId, string stopKey)
         {
-            string dir = Path.Combine(CruiseStopDir(cruiseId, stopKey), PhotoStoreConventions.ThumbnailFolder);
+            string dir = Path.Combine(JourneyStopDir(journeyId, stopKey), PhotoStoreConventions.ThumbnailFolder);
 
             if (!Directory.Exists(dir))
             {
@@ -419,31 +419,31 @@ namespace AalgTrips.Models
         }
 
         /// <inheritdoc />
-        public bool CruisePhotoExists(string cruiseId, string stopKey, string fileName)
+        public bool JourneyPhotoExists(string journeyId, string stopKey, string fileName)
         {
-            return File.Exists(CruisePhotoPath(cruiseId, stopKey, fileName));
+            return File.Exists(JourneyPhotoPath(journeyId, stopKey, fileName));
         }
 
         /// <inheritdoc />
-        public async Task SaveCruisePhotoAsync(string cruiseId, string stopKey, string fileName, Stream content)
+        public async Task SaveJourneyPhotoAsync(string journeyId, string stopKey, string fileName, Stream content)
         {
-            string dir = CruiseStopDir(cruiseId, stopKey);
+            string dir = JourneyStopDir(journeyId, stopKey);
             Directory.CreateDirectory(dir);
 
-            using var file = new FileStream(CruisePhotoPath(cruiseId, stopKey, fileName), FileMode.Create, FileAccess.Write);
+            using var file = new FileStream(JourneyPhotoPath(journeyId, stopKey, fileName), FileMode.Create, FileAccess.Write);
             await content.CopyToAsync(file);
         }
 
         /// <inheritdoc />
-        public Stream OpenCruisePhoto(string cruiseId, string stopKey, string fileName)
+        public Stream OpenJourneyPhoto(string journeyId, string stopKey, string fileName)
         {
-            return File.OpenRead(CruisePhotoPath(cruiseId, stopKey, fileName));
+            return File.OpenRead(JourneyPhotoPath(journeyId, stopKey, fileName));
         }
 
         /// <inheritdoc />
-        public async Task SaveCruiseThumbnailAsync(string cruiseId, string stopKey, string thumbnailFileName, Stream content)
+        public async Task SaveJourneyThumbnailAsync(string journeyId, string stopKey, string thumbnailFileName, Stream content)
         {
-            string dir = Path.Combine(CruiseStopDir(cruiseId, stopKey), PhotoStoreConventions.ThumbnailFolder);
+            string dir = Path.Combine(JourneyStopDir(journeyId, stopKey), PhotoStoreConventions.ThumbnailFolder);
             Directory.CreateDirectory(dir);
 
             string path = SafeCombine(dir, thumbnailFileName);
@@ -453,16 +453,16 @@ namespace AalgTrips.Models
         }
 
         /// <inheritdoc />
-        public Task DeleteCruisePhotoAsync(string cruiseId, string stopKey, string fileName)
+        public Task DeleteJourneyPhotoAsync(string journeyId, string stopKey, string fileName)
         {
-            string path = CruisePhotoPath(cruiseId, stopKey, fileName);
+            string path = JourneyPhotoPath(journeyId, stopKey, fileName);
 
             if (File.Exists(path))
             {
                 File.Delete(path);
             }
 
-            string thumbnailDir = Path.Combine(CruiseStopDir(cruiseId, stopKey), PhotoStoreConventions.ThumbnailFolder);
+            string thumbnailDir = Path.Combine(JourneyStopDir(journeyId, stopKey), PhotoStoreConventions.ThumbnailFolder);
 
             if (Directory.Exists(thumbnailDir))
             {
@@ -477,15 +477,15 @@ namespace AalgTrips.Models
         }
 
         /// <inheritdoc />
-        public string CruisePhotoUrl(string cruiseId, string stopKey, string fileName)
+        public string JourneyPhotoUrl(string journeyId, string stopKey, string fileName)
         {
-            return PhotoStoreConventions.CruisePhotoUrl(cruiseId, stopKey, fileName);
+            return PhotoStoreConventions.JourneyPhotoUrl(journeyId, stopKey, fileName);
         }
 
         /// <inheritdoc />
-        public string CruiseThumbnailUrl(string cruiseId, string stopKey, string thumbnailFileName)
+        public string JourneyThumbnailUrl(string journeyId, string stopKey, string thumbnailFileName)
         {
-            return PhotoStoreConventions.CruiseThumbnailUrl(cruiseId, stopKey, thumbnailFileName);
+            return PhotoStoreConventions.JourneyThumbnailUrl(journeyId, stopKey, thumbnailFileName);
         }
 
         private string AlbumDir(string albumId)
@@ -493,24 +493,24 @@ namespace AalgTrips.Models
             return SafeCombine(_root, albumId);
         }
 
-        private string CruisesRoot()
+        private string JourneysRoot()
         {
-            return Path.Combine(_root, PhotoStoreConventions.CruisesFolder);
+            return Path.Combine(_root, PhotoStoreConventions.JourneysFolder);
         }
 
-        private string CruiseDir(string cruiseId)
+        private string JourneyDir(string journeyId)
         {
-            return SafeCombine(CruisesRoot(), cruiseId);
+            return SafeCombine(JourneysRoot(), journeyId);
         }
 
-        private string CruiseStopDir(string cruiseId, string stopKey)
+        private string JourneyStopDir(string journeyId, string stopKey)
         {
-            return SafeCombine(CruiseDir(cruiseId), stopKey);
+            return SafeCombine(JourneyDir(journeyId), stopKey);
         }
 
-        private string CruisePhotoPath(string cruiseId, string stopKey, string fileName)
+        private string JourneyPhotoPath(string journeyId, string stopKey, string fileName)
         {
-            return SafeCombine(CruiseStopDir(cruiseId, stopKey), fileName);
+            return SafeCombine(JourneyStopDir(journeyId, stopKey), fileName);
         }
 
         private string PhotoPath(string albumId, string fileName)

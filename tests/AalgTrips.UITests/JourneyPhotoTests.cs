@@ -4,14 +4,14 @@ using Microsoft.Playwright;
 namespace AalgTrips.UITests
 {
     /// <summary>
-    /// End-to-end coverage for per-stop cruise photos: an admin uploads a photo to a
+    /// End-to-end coverage for per-stop journey photos: an admin uploads a photo to a
     /// day at sea through that stop's upload modal, the photo appears under that day
-    /// with a generated thumbnail served from the cruise media path, and deleting it
-    /// through the grid control removes it. The cruise is created and deleted within
+    /// with a generated thumbnail served from the journey media path, and deleting it
+    /// through the grid control removes it. The journey is created and deleted within
     /// the test so the suite stays self-contained.
     /// </summary>
     [TestFixture]
-    public class CruisePhotoTests : UITestBase
+    public class JourneyPhotoTests : UITestBase
     {
         // An 8x8 PNG SkiaSharp decodes cleanly (matches the album upload tests).
         private static readonly byte[] SamplePng = Convert.FromBase64String(
@@ -22,25 +22,25 @@ namespace AalgTrips.UITests
         {
             await SignInAsync();
 
-            var title = "Photo Cruise " + System.Guid.NewGuid().ToString("N");
+            var title = "Photo Journey " + System.Guid.NewGuid().ToString("N");
             string? slug = null;
 
             try
             {
-                // Create a cruise with a single at-sea stop, which is assigned a
+                // Create a journey with a single at-sea stop, which is assigned a
                 // stable key server-side.
                 await Page.GotoAsync(BaseUrl + "/");
-                await OpenAddCruiseModalAsync();
-                await Page.FillAsync("#cruiseName", title);
-                await Page.FillAsync("#cruiseStart", "2025-07-15");
-                await Page.FillAsync("#cruiseEnd", "2025-07-22");
-                await Page.ClickAsync("#addCruiseDialog [data-add-stop]");
+                await OpenAddJourneyModalAsync();
+                await Page.FillAsync("#journeyName", title);
+                await Page.FillAsync("#journeyStart", "2025-07-15");
+                await Page.FillAsync("#journeyEnd", "2025-07-22");
+                await Page.ClickAsync("#addJourneyDialog [data-add-stop]");
                 await Page.FillAsync("input[name='stops[0].Date']", "2025-07-16");
                 await Page.FillAsync("input[name='stops[0].Name']", "Cruising");
                 await Page.CheckAsync("input[name='stops[0].AtSea']");
-                await Page.ClickAsync("#newcruise");
-                await Page.WaitForURLAsync(new Regex("/cruise/[^/]+/$"));
-                slug = Regex.Match(Page.Url, "/cruise/([^/]+)/").Groups[1].Value;
+                await Page.ClickAsync("#newjourney");
+                await Page.WaitForURLAsync(new Regex("/journey/[^/]+/$"));
+                slug = Regex.Match(Page.Url, "/journey/([^/]+)/").Groups[1].Value;
 
                 // Upload a photo to that stop through its "Add photos" modal.
                 await Page.ClickAsync("[data-upload-stop]");
@@ -52,13 +52,13 @@ namespace AalgTrips.UITests
                     Buffer = SamplePng,
                 });
                 await Page.ClickAsync("#btnStopUpload");
-                await Page.WaitForURLAsync(new Regex($"/cruise/{slug}/$"));
+                await Page.WaitForURLAsync(new Regex($"/journey/{slug}/$"));
 
                 // The photo now shows under that day with a served thumbnail from the
-                // cruise media path.
+                // journey media path.
                 await Expect(Page.Locator(".itinerary-photos-row .thumb")).ToHaveCountAsync(1);
                 var thumbSrc = await Page.GetAttributeAsync(".itinerary-photos-row .thumb img", "src");
-                Assert.That(thumbSrc, Does.Contain("/cruises/"), "the thumbnail should be served from the cruise media path");
+                Assert.That(thumbSrc, Does.Contain("/journeys/"), "the thumbnail should be served from the journey media path");
                 var thumb = await Page.APIRequest.GetAsync(BaseUrl + thumbSrc);
                 Assert.That(thumb.Ok, Is.True, "the generated thumbnail should be served");
 
@@ -73,7 +73,7 @@ namespace AalgTrips.UITests
             {
                 if (slug != null)
                 {
-                    await DeleteCruiseAsync(slug);
+                    await DeleteJourneyAsync(slug);
                 }
             }
         }

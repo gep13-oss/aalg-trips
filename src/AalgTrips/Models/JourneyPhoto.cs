@@ -5,25 +5,25 @@ using System.Text.RegularExpressions;
 namespace AalgTrips.Models
 {
     /// <summary>
-    /// A single photo saved against a cruise stop, projected for display. It mirrors
+    /// A single photo saved against a journey stop, projected for display. It mirrors
     /// <see cref="Photo"/>'s thumbnail resolution — matching the
     /// <c>{name}-{width}x{height}{ext}</c> convention and caching the resolved height
-    /// per width — but is bound to a cruise stop (store, cruise id and stop key)
-    /// rather than an album, since a cruise's photos live under
-    /// <c>cruises/{cruiseId}/{stopKey}/</c> and have no per-photo page.
+    /// per width — but is bound to a journey stop (store, journey id and stop key)
+    /// rather than an album, since a journey's photos live under
+    /// <c>journeys/{journeyId}/{stopKey}/</c> and have no per-photo page.
     /// </summary>
-    public class CruisePhoto
+    public class JourneyPhoto
     {
         private static readonly Regex _size = new Regex(@"-(?<width>[0-9]+)x(?<height>[0-9]+)\.", RegexOptions.Compiled);
         private readonly IPhotoStore _store;
-        private readonly string _cruiseId;
+        private readonly string _journeyId;
         private readonly string _stopKey;
         private readonly Dictionary<int, int> _heights = new Dictionary<int, int>();
 
-        public CruisePhoto(IPhotoStore store, string cruiseId, string stopKey, string fileName)
+        public JourneyPhoto(IPhotoStore store, string journeyId, string stopKey, string fileName)
         {
             _store = store;
-            _cruiseId = cruiseId;
+            _journeyId = journeyId;
             _stopKey = stopKey;
             Id = fileName;
         }
@@ -35,7 +35,7 @@ namespace AalgTrips.Models
         public string DisplayName => Path.GetFileNameWithoutExtension(Id);
 
         /// <summary>Gets the served URL of the original photo.</summary>
-        public string PhotoUrl => _store.CruisePhotoUrl(_cruiseId, _stopKey, Id);
+        public string PhotoUrl => _store.JourneyPhotoUrl(_journeyId, _stopKey, Id);
 
         /// <summary>
         /// Resolves the served URL of the thumbnail generated at the given width and
@@ -49,10 +49,10 @@ namespace AalgTrips.Models
         {
             if (_heights.TryGetValue(width, out height))
             {
-                return _store.CruiseThumbnailUrl(_cruiseId, _stopKey, ThumbnailFileName(width, height));
+                return _store.JourneyThumbnailUrl(_journeyId, _stopKey, ThumbnailFileName(width, height));
             }
 
-            foreach (var thumbnail in _store.ListCruiseThumbnailFileNames(_cruiseId, _stopKey))
+            foreach (var thumbnail in _store.ListJourneyThumbnailFileNames(_journeyId, _stopKey))
             {
                 if (!PhotoStoreConventions.ThumbnailBelongsTo(thumbnail, Id))
                 {
@@ -65,7 +65,7 @@ namespace AalgTrips.Models
                 {
                     height = int.Parse(match.Groups["height"].Value);
                     _heights[width] = height;
-                    return _store.CruiseThumbnailUrl(_cruiseId, _stopKey, thumbnail);
+                    return _store.JourneyThumbnailUrl(_journeyId, _stopKey, thumbnail);
                 }
             }
 

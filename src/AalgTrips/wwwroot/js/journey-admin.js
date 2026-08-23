@@ -1,6 +1,6 @@
 (() => {
 
-    // Dynamic itinerary editor for the cruise create / edit forms. The enforced CSP
+    // Dynamic itinerary editor for the journey create / edit forms. The enforced CSP
     // is script-src 'self' (no inline scripts), so this lives in its own file. Each
     // [data-itinerary] block holds the current stop rows, a hidden <template> row,
     // and an "Add stop" button. Rows can be added and removed freely; their form
@@ -102,12 +102,12 @@
         });
     }
 
-    // Confirm before deleting a cruise, mirroring the album delete guard.
-    const deleteCruise = document.querySelector("#deletecruise");
+    // Confirm before deleting a journey, mirroring the album delete guard.
+    const deleteJourney = document.querySelector("#deletejourney");
 
-    if (deleteCruise) {
-        deleteCruise.addEventListener("click", (e) => {
-            if (!confirm("Are you sure you want to delete this cruise?")) {
+    if (deleteJourney) {
+        deleteJourney.addEventListener("click", (e) => {
+            if (!confirm("Are you sure you want to delete this journey?")) {
                 e.preventDefault();
             }
         }, false);

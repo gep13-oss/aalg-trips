@@ -26,23 +26,23 @@ namespace AalgTrips.Models
         public const string MarkersFileName = "markers.json";
 
         /// <summary>
-        /// The sub-folder (key prefix) all cruise content lives under, so cruises
+        /// The sub-folder (key prefix) all journey content lives under, so journeys
         /// are stored beside albums yet kept out of the album catalogue.
         /// </summary>
-        public const string CruisesFolder = "cruises";
+        public const string JourneysFolder = "journeys";
 
-        /// <summary>The file name a cruise's metadata is stored as.</summary>
-        public const string CruiseMetadataFileName = "cruise.json";
+        /// <summary>The file name a journey's metadata is stored as.</summary>
+        public const string JourneyMetadataFileName = "journey.json";
 
         /// <summary>
-        /// The file name a cruise's uploaded route geometry is stored as (beside its
-        /// metadata, under the cruise's own folder). Optional — a cruise without one
-        /// falls back to straight lines between its ports on the map.
+        /// The file name a journey's uploaded route geometry is stored as (beside its
+        /// metadata, under the journey's own folder). Optional — a journey without one
+        /// falls back to straight lines between its stops on the map.
         /// </summary>
-        public const string CruiseRouteFileName = "route.json";
+        public const string JourneyRouteFileName = "route.json";
 
-        /// <summary>The file name the map's cruise-route list is stored as (at the top level).</summary>
-        public const string CruisesFileName = "cruises.json";
+        /// <summary>The file name the map's journey-route list is stored as (at the top level).</summary>
+        public const string JourneysFileName = "journeys.json";
 
         private static readonly string[] _imageExtensions = { ".jpg", ".jpeg", ".gif", ".png" };
         private static readonly Regex _thumbnailSuffix = new Regex(@"-[0-9]+x[0-9]+$", RegexOptions.Compiled);
@@ -98,38 +98,38 @@ namespace AalgTrips.Models
         }
 
         /// <summary>
-        /// Gets the URL the map's cruise-route file is served from.
+        /// Gets the URL the map's journey-route file is served from.
         /// </summary>
         /// <returns>The root-relative media URL.</returns>
-        public static string CruisesUrl()
+        public static string JourneysUrl()
         {
-            return $"{MediaBase}/{CruisesFileName}";
+            return $"{MediaBase}/{JourneysFileName}";
         }
 
         /// <summary>
-        /// Gets the URL a cruise stop's original photo is served from. Cruise photos
-        /// live under the cruises area (<c>cruises/{cruiseId}/{stopKey}/{file}</c>),
+        /// Gets the URL a journey stop's original photo is served from. Journey photos
+        /// live under the journeys area (<c>journeys/{journeyId}/{stopKey}/{file}</c>),
         /// which the same authenticated media endpoint serves as any other store key.
         /// </summary>
-        /// <param name="cruiseId">The cruise the photo belongs to.</param>
+        /// <param name="journeyId">The journey the photo belongs to.</param>
         /// <param name="stopKey">The stop the photo belongs to.</param>
         /// <param name="fileName">The photo file name.</param>
         /// <returns>The root-relative media URL.</returns>
-        public static string CruisePhotoUrl(string cruiseId, string stopKey, string fileName)
+        public static string JourneyPhotoUrl(string journeyId, string stopKey, string fileName)
         {
-            return $"{MediaBase}/{CruisesFolder}/{Escape(cruiseId)}/{Escape(stopKey)}/{Escape(fileName)}";
+            return $"{MediaBase}/{JourneysFolder}/{Escape(journeyId)}/{Escape(stopKey)}/{Escape(fileName)}";
         }
 
         /// <summary>
-        /// Gets the URL a cruise stop's thumbnail is served from.
+        /// Gets the URL a journey stop's thumbnail is served from.
         /// </summary>
-        /// <param name="cruiseId">The cruise the thumbnail belongs to.</param>
+        /// <param name="journeyId">The journey the thumbnail belongs to.</param>
         /// <param name="stopKey">The stop the thumbnail belongs to.</param>
         /// <param name="thumbnailFileName">The thumbnail file name.</param>
         /// <returns>The root-relative media URL.</returns>
-        public static string CruiseThumbnailUrl(string cruiseId, string stopKey, string thumbnailFileName)
+        public static string JourneyThumbnailUrl(string journeyId, string stopKey, string thumbnailFileName)
         {
-            return $"{MediaBase}/{CruisesFolder}/{Escape(cruiseId)}/{Escape(stopKey)}/{ThumbnailFolder}/{Escape(thumbnailFileName)}";
+            return $"{MediaBase}/{JourneysFolder}/{Escape(journeyId)}/{Escape(stopKey)}/{ThumbnailFolder}/{Escape(thumbnailFileName)}";
         }
 
         // Percent-encodes a single path segment (album id or file name) so it round

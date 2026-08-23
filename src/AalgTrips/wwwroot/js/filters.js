@@ -12,9 +12,9 @@
 
     filters.hidden = false;
 
-    // Scope to the Trips section only: cruise cards reuse .trip-card for styling but
-    // live in their own section and must not be hidden or counted by the trip
-    // filters (how cruises interact with the filters is a later decision).
+    // Scope to the Trips section only: journey cards reuse .trip-card for styling but
+    // live in their own per-kind sections and must not be hidden or counted by the
+    // trip filters — each kind has its own toggle below.
     const cards = Array.from(document.querySelectorAll(".trips .trip-card"));
     const countEl = document.querySelector(".trips .section-head__count");
     const emptyEl = document.getElementById("tripsEmpty");
@@ -87,26 +87,28 @@
         document.dispatchEvent(new CustomEvent("trips:filter", { detail: active ? filter : null }));
     }
 
-    // Cruises toggle: independent of the trip filters. It shows or hides the Cruises
-    // card section and — via the cruises:toggle event that map.js listens for — the
-    // cruise routes on the map, without touching the trip cards or their count.
-    const cruisesBox = filters.querySelector(".filter-cruises");
-    const cruisesSection = document.querySelector(".cruises");
+    // Journey toggles: independent of the trip filters. Each toggle shows or hides one
+    // kind's card section and — via the journeys:toggle event map.js listens for — that
+    // kind's routes on the map, without touching the trip cards or their count.
+    const journeyBoxes = Array.from(filters.querySelectorAll(".filter-journeys"));
 
-    if (cruisesBox) {
-        const applyCruises = () => {
-            const show = cruisesBox.checked;
+    journeyBoxes.forEach((box) => {
+        const kind = box.dataset.kind;
+        const section = document.querySelector(".journeys[data-journey-kind=\"" + kind + "\"]");
 
-            if (cruisesSection) {
-                cruisesSection.hidden = !show;
+        const applyJourneys = () => {
+            const show = box.checked;
+
+            if (section) {
+                section.hidden = !show;
             }
 
-            document.dispatchEvent(new CustomEvent("cruises:toggle", { detail: show }));
+            document.dispatchEvent(new CustomEvent("journeys:toggle", { detail: { kind: kind, show: show } }));
         };
 
-        cruisesBox.addEventListener("change", applyCruises);
-        applyCruises();
-    }
+        box.addEventListener("change", applyJourneys);
+        applyJourneys();
+    });
 
     filters.addEventListener("change", apply);
 

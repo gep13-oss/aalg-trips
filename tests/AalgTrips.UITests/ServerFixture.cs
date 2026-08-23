@@ -33,8 +33,8 @@ namespace AalgTrips.UITests
         public const string TestViewerPassword = "viewer-password-123";
         public const string SampleAlbumSlug = "sample-trip";
         public const string SampleAlbumTitle = "Sample Trip";
-        public const string SampleCruiseSlug = "sample-cruise";
-        public const string SampleCruiseTitle = "Sample Cruise";
+        public const string SampleJourneySlug = "sample-journey";
+        public const string SampleJourneyTitle = "Sample Journey";
 
         [OneTimeSetUp]
         public async Task StartServer()
@@ -175,19 +175,19 @@ namespace AalgTrips.UITests
             };
             File.WriteAllText(Path.Combine(albums, "markers.json"), JsonSerializer.Serialize(markers));
 
-            // Seed a sample cruise so the read-only cruise tests (detail render,
-            // actions menu) have stable content. Cruise content lives under a
-            // "cruises" prefix within the albums root; cruises.json is rebuilt from
-            // it on startup, so only the per-cruise cruise.json needs seeding. The
+            // Seed a sample journey so the read-only journey tests (detail render,
+            // actions menu) have stable content. Journey content lives under a
+            // "journeys" prefix within the albums root; journeys.json is rebuilt from
+            // it on startup, so only the per-journey journey.json needs seeding. The
             // itinerary mixes a port that links the sample album, a day at sea (no
             // coordinates), and a second port, exercising the whole shape.
-            var cruiseDir = Path.Combine(albums, "cruises", SampleCruiseSlug);
-            Directory.CreateDirectory(cruiseDir);
+            var journeyDir = Path.Combine(albums, "journeys", SampleJourneySlug);
+            Directory.CreateDirectory(journeyDir);
 
-            var cruise = new
+            var journey = new
             {
-                DisplayName = SampleCruiseTitle,
-                Description = "A sample cruise used by the baseline Playwright tests.",
+                DisplayName = SampleJourneyTitle,
+                Description = "A sample journey used by the baseline Playwright tests.",
                 StartDate = "2025-07-15T00:00:00",
                 EndDate = "2025-07-22T00:00:00",
                 People = new[] { "Gary" },
@@ -231,7 +231,7 @@ namespace AalgTrips.UITests
                     },
                 },
             };
-            File.WriteAllText(Path.Combine(cruiseDir, "cruise.json"), JsonSerializer.Serialize(cruise));
+            File.WriteAllText(Path.Combine(journeyDir, "journey.json"), JsonSerializer.Serialize(journey));
         }
 
         // Mirrors the app's AalgTrips.Models.PasswordHasher: PBKDF2/HMAC-SHA256,

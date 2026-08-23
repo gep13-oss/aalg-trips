@@ -3,12 +3,12 @@ using System.Collections.Generic;
 namespace AalgTrips.Models
 {
     /// <summary>
-    /// A single port on a <see cref="CruiseRoute"/>: a waypoint the route line
+    /// A single port on a <see cref="JourneyRoute"/>: a waypoint the route line
     /// passes through, carrying the fields the map tooltip shows and the slugs of
     /// the trips visited from it (for the dotted connectors). PascalCase so the
     /// client reads it verbatim from the serialized JSON.
     /// </summary>
-    public class CruisePort
+    public class JourneyWaypoint
     {
         /// <summary>Gets or sets the port's latitude.</summary>
         public double Lat { get; set; }

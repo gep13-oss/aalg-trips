@@ -13,28 +13,28 @@ using Microsoft.AspNetCore.Mvc;
 namespace AalgTrips.Pages
 {
     /// <summary>
-    /// The cruise detail page and its admin CRUD handlers, mirroring
-    /// <see cref="AlbumsModel"/>: viewing a cruise is public (behind the site-wide
+    /// The journey detail page and its admin CRUD handlers, mirroring
+    /// <see cref="AlbumsModel"/>: viewing a journey is public (behind the site-wide
     /// login), while create / edit / rename / delete are admin-only and each guards
-    /// itself with <see cref="AdminHandlerPageModel.RequireAdmin"/>. A cruise's
-    /// itinerary is posted as an ordered list of <see cref="CruiseStop"/> rows; the
+    /// itself with <see cref="AdminHandlerPageModel.RequireAdmin"/>. A journey's
+    /// itinerary is posted as an ordered list of <see cref="JourneyStop"/> rows; the
     /// handlers normalise those (dropping blank rows, clearing coordinates on a day
     /// at sea) before the metadata is stored.
     /// </summary>
-    public class CruisesModel : AdminHandlerPageModel
+    public class JourneysModel : AdminHandlerPageModel
     {
         // A route file is a small hand-off of pre-computed geometry; reject anything
         // that could not plausibly be one before it is read into memory or parsed.
         private const long MaxRouteBytes = 4 * 1024 * 1024;
 
-        private readonly CruiseCollection _cc;
+        private readonly JourneyCollection _cc;
         private readonly AlbumCollection _ac;
         private readonly IPhotoStore _store;
         private readonly ImageProcessor _processor;
-        private readonly Dictionary<string, IReadOnlyList<CruisePhoto>> _stopPhotos =
-            new Dictionary<string, IReadOnlyList<CruisePhoto>>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, IReadOnlyList<JourneyPhoto>> _stopPhotos =
+            new Dictionary<string, IReadOnlyList<JourneyPhoto>>(StringComparer.OrdinalIgnoreCase);
 
-        public CruisesModel(CruiseCollection cc, AlbumCollection ac, IPhotoStore store, ImageProcessor processor)
+        public JourneysModel(JourneyCollection cc, AlbumCollection ac, IPhotoStore store, ImageProcessor processor)
         {
             _cc = cc;
             _ac = ac;
@@ -42,17 +42,17 @@ namespace AalgTrips.Pages
             _processor = processor;
         }
 
-        public Cruise Cruise { get; private set; }
+        public Journey Journey { get; private set; }
 
         /// <summary>
-        /// Gets a value indicating whether the cruise has an uploaded route file, so
+        /// Gets a value indicating whether the journey has an uploaded route file, so
         /// the admin UI can offer to remove it. When false the map draws straight
-        /// lines between the cruise's ports.
+        /// lines between the journey's ports.
         /// </summary>
         public bool HasRoute { get; private set; }
 
         /// <summary>
-        /// Gets the trip albums linked from the cruise's stops, in first-seen
+        /// Gets the trip albums linked from the journey's stops, in first-seen
         /// itinerary order and de-duplicated, resolved against the album catalogue.
         /// Slugs with no matching album are dropped. Never null.
         /// </summary>
@@ -66,16 +66,16 @@ namespace AalgTrips.Pages
 
         public IActionResult OnGet(string name)
         {
-            Cruise = _cc.Cruises.FirstOrDefault(c => c.Id.Equals(name, StringComparison.OrdinalIgnoreCase));
+            Journey = _cc.Journeys.FirstOrDefault(c => c.Id.Equals(name, StringComparison.OrdinalIgnoreCase));
 
-            if (Cruise == null)
+            if (Journey == null)
             {
                 return NotFound();
             }
 
-            LinkedTrips = ResolveLinkedTrips(Cruise);
-            LoadStopPhotos(Cruise);
-            HasRoute = _store.TryReadCruiseRoute(Cruise.Id) != null;
+            LinkedTrips = ResolveLinkedTrips(Journey);
+            LoadStopPhotos(Journey);
+            HasRoute = _store.TryReadJourneyRoute(Journey.Id) != null;
 
             return Page();
         }
@@ -86,14 +86,14 @@ namespace AalgTrips.Pages
         /// </summary>
         /// <param name="stopKey">The stop's stable key.</param>
         /// <returns>The stop's photos.</returns>
-        public IReadOnlyList<CruisePhoto> StopPhotos(string stopKey)
+        public IReadOnlyList<JourneyPhoto> StopPhotos(string stopKey)
         {
             if (!string.IsNullOrWhiteSpace(stopKey) && _stopPhotos.TryGetValue(stopKey, out var photos))
             {
                 return photos;
             }
 
-            return Array.Empty<CruisePhoto>();
+            return Array.Empty<JourneyPhoto>();
         }
 
         public async Task<IActionResult> OnPostUploadStop(string name, string stopKey, ICollection<IFormFile> files)
@@ -108,16 +108,16 @@ namespace AalgTrips.Pages
                 return BadRequest();
             }
 
-            var cruise = _cc.Cruises.FirstOrDefault(c => c.Id.Equals(name, StringComparison.OrdinalIgnoreCase));
+            var journey = _cc.Journeys.FirstOrDefault(c => c.Id.Equals(name, StringComparison.OrdinalIgnoreCase));
 
-            if (cruise == null)
+            if (journey == null)
             {
                 return NotFound();
             }
 
             // The photos are keyed by stop, so the stop must actually belong to this
-            // cruise — never trust the posted key to name an arbitrary folder.
-            if (!cruise.Stops.Any(s => stopKey.Equals(s.Key, StringComparison.OrdinalIgnoreCase)))
+            // journey — never trust the posted key to name an arbitrary folder.
+            if (!journey.Stops.Any(s => stopKey.Equals(s.Key, StringComparison.OrdinalIgnoreCase)))
             {
                 return NotFound();
             }
@@ -126,7 +126,7 @@ namespace AalgTrips.Pages
             {
                 string fileName = Path.GetFileName(file.FileName);
 
-                if (_store.CruisePhotoExists(name, stopKey, fileName))
+                if (_store.JourneyPhotoExists(name, stopKey, fileName))
                 {
                     // Keep both when a name collides, tagging the duplicate with the
                     // upload's hash, exactly as the album upload does.
@@ -137,12 +137,12 @@ namespace AalgTrips.Pages
                 // file, so a decode failure never leaves a half-written original.
                 using (var uploadStream = file.OpenReadStream())
                 {
-                    await _store.SaveCruisePhotoAsync(name, stopKey, fileName, uploadStream);
+                    await _store.SaveJourneyPhotoAsync(name, stopKey, fileName, uploadStream);
                 }
 
                 IReadOnlyList<GeneratedThumbnail> thumbnails;
 
-                using (var savedImage = _store.OpenCruisePhoto(name, stopKey, fileName))
+                using (var savedImage = _store.OpenJourneyPhoto(name, stopKey, fileName))
                 {
                     thumbnails = _processor.CreateThumbnails(savedImage, fileName);
                 }
@@ -151,18 +151,18 @@ namespace AalgTrips.Pages
                 {
                     // The bytes were not a decodable image despite the extension; drop
                     // the saved original and skip it rather than 500.
-                    await _store.DeleteCruisePhotoAsync(name, stopKey, fileName);
+                    await _store.DeleteJourneyPhotoAsync(name, stopKey, fileName);
                     continue;
                 }
 
                 foreach (var thumbnail in thumbnails)
                 {
                     using var thumbnailStream = new MemoryStream(thumbnail.Content);
-                    await _store.SaveCruiseThumbnailAsync(name, stopKey, thumbnail.FileName, thumbnailStream);
+                    await _store.SaveJourneyThumbnailAsync(name, stopKey, thumbnail.FileName, thumbnailStream);
                 }
             }
 
-            return new RedirectResult($"~/cruise/{WebUtility.UrlEncode(name).Replace('+', ' ')}/");
+            return new RedirectResult($"~/journey/{WebUtility.UrlEncode(name).Replace('+', ' ')}/");
         }
 
         public async Task<IActionResult> OnPostDeleteStopPhoto(string name, string stopKey, string photo)
@@ -179,21 +179,21 @@ namespace AalgTrips.Pages
                 return BadRequest();
             }
 
-            var cruise = _cc.Cruises.FirstOrDefault(c => c.Id.Equals(name, StringComparison.OrdinalIgnoreCase));
+            var journey = _cc.Journeys.FirstOrDefault(c => c.Id.Equals(name, StringComparison.OrdinalIgnoreCase));
 
-            if (cruise == null)
+            if (journey == null)
             {
                 return NotFound();
             }
 
-            if (!cruise.Stops.Any(s => stopKey.Equals(s.Key, StringComparison.OrdinalIgnoreCase)))
+            if (!journey.Stops.Any(s => stopKey.Equals(s.Key, StringComparison.OrdinalIgnoreCase)))
             {
                 return NotFound();
             }
 
-            await _store.DeleteCruisePhotoAsync(name, stopKey, photo);
+            await _store.DeleteJourneyPhotoAsync(name, stopKey, photo);
 
-            return new RedirectResult($"~/cruise/{name}/");
+            return new RedirectResult($"~/journey/{name}/");
         }
 
         public async Task<IActionResult> OnPostUploadRoute(string name, IFormFile file)
@@ -208,9 +208,9 @@ namespace AalgTrips.Pages
                 return BadRequest();
             }
 
-            var cruise = _cc.Cruises.FirstOrDefault(c => c.Id.Equals(name, StringComparison.OrdinalIgnoreCase));
+            var journey = _cc.Journeys.FirstOrDefault(c => c.Id.Equals(name, StringComparison.OrdinalIgnoreCase));
 
-            if (cruise == null)
+            if (journey == null)
             {
                 return NotFound();
             }
@@ -230,15 +230,15 @@ namespace AalgTrips.Pages
             // The route is computed offline and uploaded as GeoJSON; a file that is
             // not a usable line of at least two valid coordinates is rejected rather
             // than stored, so the map never draws a broken route.
-            if (!GeoJsonRoute.TryParse(json, out var points))
+            if (!GeoJsonRoute.TryParse(json, out var segments))
             {
                 return BadRequest();
             }
 
-            await _store.SaveCruiseRouteAsync(name, points);
-            await _cc.WriteCruisesAsync();
+            await _store.SaveJourneyRouteAsync(name, segments);
+            await _cc.WriteJourneysAsync();
 
-            return new RedirectResult($"~/cruise/{name}/");
+            return new RedirectResult($"~/journey/{name}/");
         }
 
         public async Task<IActionResult> OnPostDeleteRoute(string name)
@@ -253,17 +253,17 @@ namespace AalgTrips.Pages
                 return BadRequest();
             }
 
-            var cruise = _cc.Cruises.FirstOrDefault(c => c.Id.Equals(name, StringComparison.OrdinalIgnoreCase));
+            var journey = _cc.Journeys.FirstOrDefault(c => c.Id.Equals(name, StringComparison.OrdinalIgnoreCase));
 
-            if (cruise == null)
+            if (journey == null)
             {
                 return NotFound();
             }
 
-            await _store.DeleteCruiseRouteAsync(name);
-            await _cc.WriteCruisesAsync();
+            await _store.DeleteJourneyRouteAsync(name);
+            await _cc.WriteJourneysAsync();
 
-            return new RedirectResult($"~/cruise/{name}/");
+            return new RedirectResult($"~/journey/{name}/");
         }
 
         public async Task<IActionResult> OnPostDelete(string name)
@@ -278,15 +278,15 @@ namespace AalgTrips.Pages
                 return BadRequest();
             }
 
-            await _store.DeleteCruiseAsync(name);
+            await _store.DeleteJourneyAsync(name);
 
             _cc.Remove(name);
-            await _cc.WriteCruisesAsync();
+            await _cc.WriteJourneysAsync();
 
             return new RedirectResult("~/");
         }
 
-        public async Task<IActionResult> OnPostCreate(string name, string description, string startDate, string endDate, string routeColor, List<string> people, List<CruiseStop> stops)
+        public async Task<IActionResult> OnPostCreate(string name, string kind, string description, string startDate, string endDate, string routeColor, List<string> people, List<JourneyStop> stops)
         {
             if (RequireAdmin() is { } challenge)
             {
@@ -297,7 +297,7 @@ namespace AalgTrips.Pages
 
             // As with albums, an all-punctuation title can slug to an empty string;
             // reject anything that is not a safe single segment before it is used as
-            // the cruise's storage folder id.
+            // the journey's storage folder id.
             if (!SafePathHelper.IsValidSegment(slug))
             {
                 return BadRequest();
@@ -308,20 +308,21 @@ namespace AalgTrips.Pages
                 return BadRequest();
             }
 
-            // The slug doubles as the cruise's folder id. Two titles that slug to the
-            // same value would otherwise write over an existing cruise, so refuse the
-            // create and leave the existing cruise untouched (mirrors album create).
-            bool alreadyExists = _store.CruiseExists(slug)
-                || _cc.Cruises.Any(c => c.Id.Equals(slug, StringComparison.OrdinalIgnoreCase));
+            // The slug doubles as the journey's folder id. Two titles that slug to the
+            // same value would otherwise write over an existing journey, so refuse the
+            // create and leave the existing journey untouched (mirrors album create).
+            bool alreadyExists = _store.JourneyExists(slug)
+                || _cc.Journeys.Any(c => c.Id.Equals(slug, StringComparison.OrdinalIgnoreCase));
 
             if (alreadyExists)
             {
-                return StatusCode(StatusCodes.Status409Conflict, $"A cruise with the name “{name}” already exists. Please choose a different title.");
+                return StatusCode(StatusCodes.Status409Conflict, $"A journey with the name “{name}” already exists. Please choose a different title.");
             }
 
-            var metaData = new CruiseMetaData
+            var metaData = new JourneyMetaData
             {
                 DisplayName = name,
+                Kind = NormalizeKind(kind),
                 Description = description,
                 StartDate = start,
                 EndDate = end,
@@ -330,22 +331,22 @@ namespace AalgTrips.Pages
                 Stops = NormalizeStops(stops),
             };
 
-            await _store.WriteCruiseAsync(slug, metaData);
+            await _store.WriteJourneyAsync(slug, metaData);
 
-            _cc.Add(new Cruise(slug, metaData));
-            await _cc.WriteCruisesAsync();
+            _cc.Add(new Journey(slug, metaData));
+            await _cc.WriteJourneysAsync();
 
-            return new RedirectResult($"~/cruise/{slug}/");
+            return new RedirectResult($"~/journey/{slug}/");
         }
 
-        public async Task<IActionResult> OnPostEdit([FromRoute(Name = "name")] string slug, string name, string description, string startDate, string endDate, string routeColor, List<string> people, List<CruiseStop> stops)
+        public async Task<IActionResult> OnPostEdit([FromRoute(Name = "name")] string slug, string name, string kind, string description, string startDate, string endDate, string routeColor, List<string> people, List<JourneyStop> stops)
         {
             if (RequireAdmin() is { } challenge)
             {
                 return challenge;
             }
 
-            // The cruise slug is the route value. Bind it explicitly from the route
+            // The journey slug is the route value. Bind it explicitly from the route
             // because the edit form also posts a "name" field (the display name),
             // which the default binder would otherwise let win — exactly as
             // AlbumsModel.OnPostEdit does.
@@ -354,7 +355,7 @@ namespace AalgTrips.Pages
                 return BadRequest();
             }
 
-            var existing = _cc.Cruises.FirstOrDefault(c => c.Id.Equals(slug, StringComparison.OrdinalIgnoreCase));
+            var existing = _cc.Journeys.FirstOrDefault(c => c.Id.Equals(slug, StringComparison.OrdinalIgnoreCase));
 
             if (existing == null)
             {
@@ -366,9 +367,10 @@ namespace AalgTrips.Pages
                 return BadRequest();
             }
 
-            var metaData = new CruiseMetaData
+            var metaData = new JourneyMetaData
             {
                 DisplayName = name,
+                Kind = NormalizeKind(kind),
                 Description = description,
                 StartDate = start,
                 EndDate = end,
@@ -377,12 +379,12 @@ namespace AalgTrips.Pages
                 Stops = NormalizeStops(stops),
             };
 
-            await _store.WriteCruiseAsync(slug, metaData);
+            await _store.WriteJourneyAsync(slug, metaData);
 
-            _cc.ReloadCruise(slug);
-            await _cc.WriteCruisesAsync();
+            _cc.ReloadJourney(slug);
+            await _cc.WriteJourneysAsync();
 
-            return new RedirectResult($"~/cruise/{slug}/");
+            return new RedirectResult($"~/journey/{slug}/");
         }
 
         public async Task<IActionResult> OnPostRename([FromRoute(Name = "name")] string slug, string name)
@@ -392,14 +394,14 @@ namespace AalgTrips.Pages
                 return challenge;
             }
 
-            // The cruise slug is the route value; the posted "name" is the new title.
+            // The journey slug is the route value; the posted "name" is the new title.
             // Bind the slug from the route so the form's "name" cannot win.
             if (!SafePathHelper.IsValidSegment(slug))
             {
                 return BadRequest();
             }
 
-            var existing = _cc.Cruises.FirstOrDefault(c => c.Id.Equals(slug, StringComparison.OrdinalIgnoreCase));
+            var existing = _cc.Journeys.FirstOrDefault(c => c.Id.Equals(slug, StringComparison.OrdinalIgnoreCase));
 
             if (existing == null)
             {
@@ -415,18 +417,19 @@ namespace AalgTrips.Pages
 
             bool slugChanges = !newSlug.Equals(slug, StringComparison.OrdinalIgnoreCase);
 
-            // Refuse to move onto another cruise's folder — that would overwrite it.
+            // Refuse to move onto another journey's folder — that would overwrite it.
             if (slugChanges
-                && (_store.CruiseExists(newSlug) || _cc.Cruises.Any(c => c.Id.Equals(newSlug, StringComparison.OrdinalIgnoreCase))))
+                && (_store.JourneyExists(newSlug) || _cc.Journeys.Any(c => c.Id.Equals(newSlug, StringComparison.OrdinalIgnoreCase))))
             {
-                return StatusCode(StatusCodes.Status409Conflict, $"A cruise with the name “{name}” already exists. Please choose a different title.");
+                return StatusCode(StatusCodes.Status409Conflict, $"A journey with the name “{name}” already exists. Please choose a different title.");
             }
 
             // Preserve everything but the (new) display name; the itinerary, people
             // and dates carry over unchanged.
-            var metaData = new CruiseMetaData
+            var metaData = new JourneyMetaData
             {
                 DisplayName = name,
+                Kind = existing.Kind,
                 Description = existing.Description,
                 StartDate = existing.StartDate,
                 EndDate = existing.EndDate,
@@ -437,23 +440,23 @@ namespace AalgTrips.Pages
 
             if (slugChanges)
             {
-                // Move the cruise's content to the new id, stamp the new title onto
+                // Move the journey's content to the new id, stamp the new title onto
                 // the moved metadata, then swap the catalogue entry over.
-                await _store.RenameCruiseAsync(slug, newSlug);
-                await _store.WriteCruiseAsync(newSlug, metaData);
-                _cc.RenameCruise(slug, newSlug);
+                await _store.RenameJourneyAsync(slug, newSlug);
+                await _store.WriteJourneyAsync(newSlug, metaData);
+                _cc.RenameJourney(slug, newSlug);
             }
             else
             {
                 // The title changed but its slug did not (e.g. only capitalisation):
                 // this is an in-place metadata edit.
-                await _store.WriteCruiseAsync(slug, metaData);
-                _cc.ReloadCruise(slug);
+                await _store.WriteJourneyAsync(slug, metaData);
+                _cc.ReloadJourney(slug);
             }
 
-            await _cc.WriteCruisesAsync();
+            await _cc.WriteJourneysAsync();
 
-            return new RedirectResult($"~/cruise/{newSlug}/");
+            return new RedirectResult($"~/journey/{newSlug}/");
         }
 
         /// <summary>
@@ -490,16 +493,16 @@ namespace AalgTrips.Pages
         // assigns each stop a stable key (generated when missing, kept when the
         // editor round-tripped one). Row order is preserved — the itinerary is the
         // ordered spine.
-        private static List<CruiseStop> NormalizeStops(List<CruiseStop> stops)
+        private static List<JourneyStop> NormalizeStops(List<JourneyStop> stops)
         {
             if (stops == null)
             {
-                return new List<CruiseStop>();
+                return new List<JourneyStop>();
             }
 
-            var result = new List<CruiseStop>();
+            var result = new List<JourneyStop>();
 
-            // The key is a folder id, so it must be unique within the cruise; a
+            // The key is a folder id, so it must be unique within the journey; a
             // duplicate (a copied row, or a tampered field) is regenerated.
             var usedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -510,7 +513,7 @@ namespace AalgTrips.Pages
                     continue;
                 }
 
-                result.Add(new CruiseStop
+                result.Add(new JourneyStop
                 {
                     Key = ResolveStopKey(stop.Key, stop.Name, usedKeys),
                     Date = stop.Date,
@@ -527,11 +530,22 @@ namespace AalgTrips.Pages
                 });
             }
 
-            // A cruise itinerary is chronological, so order the stops by date (a
+            // A journey itinerary is chronological, so order the stops by date (a
             // stable sort keeps the entered order for any that share a date). This is
             // also the order the map route is drawn in, so a stop added out of order
             // still lands in the right place.
             return result.OrderBy(s => s.Date).ToList();
+        }
+
+        // Accepts a posted journey kind only if it names a defined JourneyKind;
+        // anything else (missing, tampered, or an unknown value) falls back to Cruise,
+        // matching how absent metadata deserializes.
+        private static JourneyKind NormalizeKind(string kind)
+        {
+            return Enum.TryParse<JourneyKind>(kind, ignoreCase: true, out var parsed)
+                && Enum.IsDefined(typeof(JourneyKind), parsed)
+                ? parsed
+                : JourneyKind.Cruise;
         }
 
         // Accepts a posted route colour only if it is a valid #rgb / #rrggbb hex
@@ -546,7 +560,7 @@ namespace AalgTrips.Pages
                 return value.ToLowerInvariant();
             }
 
-            return Cruise.DefaultRouteColor;
+            return Journey.DefaultRouteColor;
         }
 
         // Keeps a valid, not-yet-used posted key; otherwise generates a fresh one
@@ -581,27 +595,27 @@ namespace AalgTrips.Pages
             return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         }
 
-        private void LoadStopPhotos(Cruise cruise)
+        private void LoadStopPhotos(Journey journey)
         {
-            foreach (var stop in cruise.Stops)
+            foreach (var stop in journey.Stops)
             {
                 if (string.IsNullOrWhiteSpace(stop.Key) || !SafePathHelper.IsValidSegment(stop.Key))
                 {
                     continue;
                 }
 
-                _stopPhotos[stop.Key] = _store.ListCruisePhotoFileNames(cruise.Id, stop.Key)
-                    .Select(fileName => new CruisePhoto(_store, cruise.Id, stop.Key, fileName))
+                _stopPhotos[stop.Key] = _store.ListJourneyPhotoFileNames(journey.Id, stop.Key)
+                    .Select(fileName => new JourneyPhoto(_store, journey.Id, stop.Key, fileName))
                     .ToList();
             }
         }
 
-        private IReadOnlyList<Album> ResolveLinkedTrips(Cruise cruise)
+        private IReadOnlyList<Album> ResolveLinkedTrips(Journey journey)
         {
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var result = new List<Album>();
 
-            foreach (var stop in cruise.Stops)
+            foreach (var stop in journey.Stops)
             {
                 foreach (var slug in stop.Trips ?? Enumerable.Empty<string>())
                 {

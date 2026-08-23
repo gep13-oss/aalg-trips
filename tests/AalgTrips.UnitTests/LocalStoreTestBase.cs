@@ -5,10 +5,10 @@ namespace AalgTrips.UnitTests
 {
     /// <summary>
     /// Shared scaffolding for the unit tests that drive the in-memory catalogues
-    /// (<see cref="AlbumCollection"/> and <see cref="CruiseCollection"/>) over a
+    /// (<see cref="AlbumCollection"/> and <see cref="JourneyCollection"/>) over a
     /// <see cref="LocalDiskPhotoStore"/>: a fresh temp albums root per test, a store
     /// pointed at it, an album seeder, and a reader for the generated root JSON
-    /// files. Content-type-specific seeding (e.g. cruises) stays in the fixture that
+    /// files. Content-type-specific seeding (e.g. journeys) stays in the fixture that
     /// needs it.
     /// </summary>
     public abstract class LocalStoreTestBase
@@ -87,7 +87,7 @@ namespace AalgTrips.UnitTests
 
         /// <summary>
         /// Reads and deserializes one of the generated root JSON files the store
-        /// writes (for example <c>markers.json</c> or <c>cruises.json</c>).
+        /// writes (for example <c>markers.json</c> or <c>journeys.json</c>).
         /// </summary>
         /// <typeparam name="T">The type to deserialize the file into.</typeparam>
         /// <param name="fileName">The root file name.</param>

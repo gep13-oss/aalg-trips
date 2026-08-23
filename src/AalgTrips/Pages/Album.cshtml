@@ -112,12 +112,12 @@
     {
         <p class="album-head__people"><span class="album-head__people-label">Who</span> @string.Join(", ", Model.Album.People)</p>
     }
-    @if (Model.PartOfCruises.Count > 0)
+    @if (Model.PartOfJourneys.Count > 0)
     {
-        <p class="album-head__cruise">
-            @foreach (var cruise in Model.PartOfCruises)
+        <p class="album-head__journey">
+            @foreach (var journey in Model.PartOfJourneys)
             {
-                <a class="album-head__cruise-link" href="@cruise.Link">Part of the @cruise.DisplayName cruise</a>
+                <a class="album-head__journey-link" href="@journey.Link">Part of the @journey.DisplayName @journey.Vocabulary.Noun</a>
             }
         </p>
     }

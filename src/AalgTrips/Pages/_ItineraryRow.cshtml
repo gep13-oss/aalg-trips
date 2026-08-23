@@ -16,12 +16,12 @@
             <input type="date" name="stops[@i].Date" value="@(stop != null ? stop.Date.ToString("yyyy-MM-dd", inv) : string.Empty)" />
         </label>
         <label class="field stop-field stop-field--name">
-            <span class="field__legend">Port / name</span>
+            <span class="field__legend">Stop / name</span>
             <input type="text" name="stops[@i].Name" value="@stop?.Name" placeholder="e.g. Santorini" />
         </label>
         <label class="field stop-field stop-field--atsea check-label">
             <input type="checkbox" name="stops[@i].AtSea" value="true" checked="@(stop?.AtSea ?? false)" data-atsea />
-            <span>At sea</span>
+            <span>Travel day</span>
         </label>
         <label class="field stop-field stop-field--arrive">
             <span class="field__legend">Arrive</span>

@@ -1,6 +1,6 @@
 @page
 @inject AlbumCollection ac
-@inject CruiseCollection cc
+@inject JourneyCollection cc
 @{
     ViewData["Title"] = "Albums";
     ViewData["Description"] = $"An online gallery where I share my photos with the world. Currently showing {ac.Albums.Count} albums ({string.Join(", ", ac.Albums.Select(a => a.Id))})";
@@ -16,11 +16,19 @@
     var peopleInUse = KnownPeople.All.Where(p => usedPeople.Contains(p, StringComparer.OrdinalIgnoreCase))
         .Concat(usedPeople.Where(p => !KnownPeople.All.Contains(p, StringComparer.OrdinalIgnoreCase)))
         .ToList();
+
+    // Journeys grouped by kind, in a fixed display order, keeping only the kinds
+    // that actually have journeys so the home page shows one section per kind.
+    var kindOrder = new[] { JourneyKind.Cruise, JourneyKind.Trek, JourneyKind.RoadTrip };
+    var journeysByKind = kindOrder
+        .Select(k => new { Kind = k, Vocab = JourneyVocabulary.For(k), Items = cc.Journeys.Where(j => j.Kind == k).ToList() })
+        .Where(g => g.Items.Count > 0)
+        .ToList();
 }
 
 <div id="admin" class="page-actions" if-authorized>
     <button type="button" class="btn btn--primary" data-open-dialog="#addTripDialog">Add trip</button>
-    <button type="button" class="btn btn--primary" data-open-dialog="#addCruiseDialog">Add cruise</button>
+    <button type="button" class="btn btn--primary" data-open-dialog="#addJourneyDialog">Add journey</button>
 
     <dialog id="addTripDialog" class="modal" aria-label="New trip">
         <form class="trip-form modal__form" method="post" action="~/album/new/create/">
@@ -61,46 +69,54 @@
         </form>
     </dialog>
 
-    <dialog id="addCruiseDialog" class="modal modal--wide" aria-label="New cruise">
-        <form class="trip-form modal__form" method="post" action="~/cruise/new/create/">
-            <h2 class="trip-form__title">New cruise</h2>
+    <dialog id="addJourneyDialog" class="modal modal--wide" aria-label="New journey">
+        <form class="trip-form modal__form" method="post" action="~/journey/new/create/">
+            <h2 class="trip-form__title">New journey</h2>
             <button type="button" class="modal__close" data-close-dialog aria-label="Close">&times;</button>
 
             <div class="field field--place">
-                <label for="cruiseName">Cruise name</label>
-                <input type="text" name="name" id="cruiseName" required placeholder="e.g. Western Mediterranean" />
+                <label for="journeyName">Name</label>
+                <input type="text" name="name" id="journeyName" required placeholder="e.g. Western Mediterranean" />
+            </div>
+            <div class="field field--kind">
+                <label for="journeyKind">Type</label>
+                <select name="kind" id="journeyKind">
+                    <option value="Cruise" selected>Cruise</option>
+                    <option value="Trek">Trek</option>
+                    <option value="RoadTrip">Road trip</option>
+                </select>
             </div>
             <div class="field field--date">
-                <label for="cruiseStart">Departs</label>
-                <input type="date" name="startDate" id="cruiseStart" required />
+                <label for="journeyStart">Departs</label>
+                <input type="date" name="startDate" id="journeyStart" required />
             </div>
             <div class="field field--date">
-                <label for="cruiseEnd">Returns</label>
-                <input type="date" name="endDate" id="cruiseEnd" required />
+                <label for="journeyEnd">Returns</label>
+                <input type="date" name="endDate" id="journeyEnd" required />
             </div>
             <div class="field field--color">
-                <label for="cruiseColor">Route colour</label>
-                <input type="color" name="routeColor" id="cruiseColor" value="#0e6e78" />
+                <label for="journeyColor">Route colour</label>
+                <input type="color" name="routeColor" id="journeyColor" value="#0e6e78" />
             </div>
             <div class="field field--notes">
-                <label for="cruiseDescription">Notes</label>
-                <textarea name="description" id="cruiseDescription" rows="3" placeholder="A few lines about the cruise…"></textarea>
+                <label for="journeyDescription">Notes</label>
+                <textarea name="description" id="journeyDescription" rows="3" placeholder="A few lines about the journey…"></textarea>
             </div>
             <partial name="_PeopleChecklist" model="System.Array.Empty<string>()" />
             @{
-                var newCruiseItinerary = new ItineraryEditorModel { Stops = System.Array.Empty<CruiseStop>(), Albums = ac.Albums };
+                var newJourneyItinerary = new ItineraryEditorModel { Stops = System.Array.Empty<JourneyStop>(), Albums = ac.Albums };
             }
-            <partial name="_ItineraryEditor" model="newCruiseItinerary" />
+            <partial name="_ItineraryEditor" model="newJourneyItinerary" />
             <div class="field field--actions">
                 <button type="button" class="btn btn--ghost" data-close-dialog>Cancel</button>
-                <input type="submit" id="newcruise" class="btn btn--primary" value="Add cruise" data-progress="Creating…" />
+                <input type="submit" id="newjourney" class="btn btn--primary" value="Add journey" data-progress="Creating…" />
             </div>
         </form>
     </dialog>
 </div>
 
 <section class="map-hero">
-    <div id="map" data-markers-url="@ac.MarkersUrl()" data-cruises-url="@cc.CruisesUrl()"></div>
+    <div id="map" data-markers-url="@ac.MarkersUrl()" data-journeys-url="@cc.JourneysUrl()"></div>
 </section>
 
 @if (ac.Albums.Count == 0)
@@ -124,7 +140,7 @@ else
             <span class="section-head__count">@ac.Albums.Count trip@(ac.Albums.Count == 1 ? "" : "s")</span>
         </div>
 
-        @if (anyCastle || peopleInUse.Count > 0 || cc.Cruises.Count > 0)
+        @if (anyCastle || peopleInUse.Count > 0 || journeysByKind.Count > 0)
         {
             <div class="filters" id="filters" hidden>
                 <span class="filters__label">Filter</span>
@@ -140,9 +156,11 @@ else
                 {
                     <label class="filters__exact" title="Show only trips with exactly the selected people"><input type="checkbox" class="filter-exact" /> Exact match</label>
                 }
-                @if (cc.Cruises.Count > 0)
+                @for (var i = 0; i < journeysByKind.Count; i++)
                 {
-                    <label class="chip chip--cruises" title="Show or hide cruises and their map routes"><input type="checkbox" class="filter-cruises" checked /><span>Cruises</span></label>
+                    var g = journeysByKind[i];
+                    var leadClass = i == 0 ? " chip--journeys-lead" : "";
+                    <label class="chip chip--journeys@(leadClass)" title="Show or hide @g.Vocab.NounPlural and their map routes"><input type="checkbox" class="filter-journeys" data-kind="@g.Kind" checked /><span>@g.Vocab.TitlePlural</span></label>
                 }
                 <button type="button" class="filters__clear" hidden>Clear</button>
             </div>
@@ -159,17 +177,17 @@ else
     </section>
 }
 
-@if (cc.Cruises.Count > 0)
+@foreach (var g in journeysByKind)
 {
-    <section class="cruises">
+    <section class="journeys" data-journey-kind="@g.Kind">
         <div class="section-head">
-            <h2 class="section-head__title">Cruises</h2>
-            <span class="section-head__count">@cc.Cruises.Count cruise@(cc.Cruises.Count == 1 ? "" : "s")</span>
+            <h2 class="section-head__title">@g.Vocab.TitlePlural</h2>
+            <span class="section-head__count">@g.Items.Count @(g.Items.Count == 1 ? g.Vocab.Noun : g.Vocab.NounPlural)</span>
         </div>
         <div class="trip-grid">
-            @foreach (var cruise in cc.Cruises)
+            @foreach (var journey in g.Items)
             {
-                <partial name="_CruiseCard" model="cruise" />
+                <partial name="_JourneyCard" model="journey" />
             }
         </div>
     </section>
@@ -187,5 +205,5 @@ else
     <script src="~/js/map.js" asp-append-version="true"></script>
     <script src="~/js/filters.js" asp-append-version="true"></script>
     <script if-authorized src="~/js/admin.js" async asp-append-version="true"></script>
-    <script if-authorized src="~/js/cruise-admin.js" asp-append-version="true"></script>
+    <script if-authorized src="~/js/journey-admin.js" asp-append-version="true"></script>
 }

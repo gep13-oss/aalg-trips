@@ -89,58 +89,58 @@ namespace AalgTrips.UITests
         }
 
         /// <summary>
-        /// Opens the home page "Add cruise" modal and waits for its dialog to be open.
+        /// Opens the home page "Add journey" modal and waits for its dialog to be open.
         /// </summary>
-        /// <returns>A task that completes once the Add-cruise dialog is open.</returns>
-        protected async Task OpenAddCruiseModalAsync()
+        /// <returns>A task that completes once the Add-journey dialog is open.</returns>
+        protected async Task OpenAddJourneyModalAsync()
         {
-            await Page.ClickAsync("[data-open-dialog='#addCruiseDialog']");
-            await Page.WaitForSelectorAsync("#addCruiseDialog[open]");
+            await Page.ClickAsync("[data-open-dialog='#addJourneyDialog']");
+            await Page.WaitForSelectorAsync("#addJourneyDialog[open]");
         }
 
         /// <summary>
-        /// Creates a cruise through the home-page "Add cruise" modal and waits for the
+        /// Creates a journey through the home-page "Add journey" modal and waits for the
         /// redirect to its detail page, returning the slug the create assigned.
         /// </summary>
-        /// <param name="title">The cruise title to create.</param>
+        /// <param name="title">The journey title to create.</param>
         /// <param name="startDate">The departure date (yyyy-MM-dd).</param>
         /// <param name="endDate">The return date (yyyy-MM-dd).</param>
-        /// <returns>The slug of the created cruise.</returns>
-        protected async Task<string> CreateCruiseAsync(string title, string startDate = "2025-07-15", string endDate = "2025-07-22")
+        /// <returns>The slug of the created journey.</returns>
+        protected async Task<string> CreateJourneyAsync(string title, string startDate = "2025-07-15", string endDate = "2025-07-22")
         {
             await Page.GotoAsync(BaseUrl + "/");
-            await OpenAddCruiseModalAsync();
-            await Page.FillAsync("#cruiseName", title);
-            await Page.FillAsync("#cruiseStart", startDate);
-            await Page.FillAsync("#cruiseEnd", endDate);
-            await Page.ClickAsync("#newcruise");
-            await Page.WaitForURLAsync(new Regex("/cruise/[^/]+/$"));
+            await OpenAddJourneyModalAsync();
+            await Page.FillAsync("#journeyName", title);
+            await Page.FillAsync("#journeyStart", startDate);
+            await Page.FillAsync("#journeyEnd", endDate);
+            await Page.ClickAsync("#newjourney");
+            await Page.WaitForURLAsync(new Regex("/journey/[^/]+/$"));
 
-            return Regex.Match(Page.Url, "/cruise/([^/]+)/").Groups[1].Value;
+            return Regex.Match(Page.Url, "/journey/([^/]+)/").Groups[1].Value;
         }
 
         /// <summary>
-        /// Deletes a cruise through its detail-page Actions menu, accepting the delete
+        /// Deletes a journey through its detail-page Actions menu, accepting the delete
         /// confirmation, so a mutation test can clean up after itself. A no-op when the
-        /// cruise no longer exists.
+        /// journey no longer exists.
         /// </summary>
-        /// <param name="slug">The slug of the cruise to delete.</param>
-        /// <returns>A task that completes once the cruise has been deleted.</returns>
-        protected async Task DeleteCruiseAsync(string slug)
+        /// <param name="slug">The slug of the journey to delete.</param>
+        /// <returns>A task that completes once the journey has been deleted.</returns>
+        protected async Task DeleteJourneyAsync(string slug)
         {
-            var exists = await Page.APIRequest.GetAsync($"{BaseUrl}/cruise/{slug}/");
+            var exists = await Page.APIRequest.GetAsync($"{BaseUrl}/journey/{slug}/");
 
             if (exists.Status != 200)
             {
                 return;
             }
 
-            await Page.GotoAsync($"{BaseUrl}/cruise/{slug}/");
+            await Page.GotoAsync($"{BaseUrl}/journey/{slug}/");
             await Page.ClickAsync("summary.actions-menu__trigger");
             await Page.WaitForSelectorAsync(".actions-menu[open]");
 
             Page.Dialog += AcceptDialog;
-            await Page.ClickAsync("#deletecruise");
+            await Page.ClickAsync("#deletejourney");
             await Page.WaitForURLAsync(BaseUrl + "/");
             Page.Dialog -= AcceptDialog;
         }

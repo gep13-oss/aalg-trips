@@ -30,17 +30,17 @@
         tooltipAnchor: [0, -10],
     });
 
-    // The route colour a cruise falls back to when it has not chosen one.
+    // The route colour a journey falls back to when it has not chosen one.
     const defaultRouteColor = "#0e6e78";
 
-    // A cruise port's pin: a small numbered CSS marker (styled in site.css) that
+    // A journey waypoint's pin: a small numbered CSS marker (styled in site.css) that
     // reads as a numbered waypoint on the route rather than a trip. A local divIcon,
-    // no CDN; the sequence number and the cruise's route colour are stamped in per
-    // port so the visit order and which cruise it belongs to are both clear.
-    function portIconFor(sequence, color) {
+    // no CDN; the sequence number and the journey's route colour are stamped in per
+    // stop so the visit order and which journey it belongs to are both clear.
+    function waypointIconFor(sequence, color) {
         return L.divIcon({
-            className: "port-pin",
-            html: "<span class=\"port-pin__num\" style=\"background:" + color + "\">" + sequence + "</span>",
+            className: "route-pin",
+            html: "<span class=\"route-pin__num\" style=\"background:" + color + "\">" + sequence + "</span>",
             iconSize: [22, 22],
             iconAnchor: [11, 11],
             tooltipAnchor: [0, -11],
@@ -60,15 +60,30 @@
     const cluster = L.markerClusterGroup({ showCoverageOnHover: false });
     map.addLayer(cluster);
 
-    // Cruise routes (polylines, port pins and the dotted connectors to their trips)
-    // live in their own layer, below the clustered trip pins and independent of the
-    // trip filter — they are drawn once when the data loads.
-    const cruiseLayer = L.layerGroup().addTo(map);
-
+    // Journey routes (polylines, waypoint pins and the dotted connectors to their
+    // trips) live in a layer per kind, below the clustered trip pins and independent
+    // of the trip filter, so the home page can show or hide a whole kind at once.
+    const journeyLayers = {};
+    let journeyPoints = [];
     let allMarkers = [];
-    let cruiseRoutes = [];
-    let cruisePoints = [];
+    let journeyRoutes = [];
     let activeFilter = null;
+
+    // Per-kind visibility for the journey layers; a kind defaults to visible until its
+    // toggle says otherwise.
+    const journeyVisible = {};
+
+    function layerForKind(kind) {
+        if (!journeyLayers[kind]) {
+            journeyLayers[kind] = L.layerGroup();
+
+            if (journeyVisible[kind] !== false) {
+                journeyLayers[kind].addTo(map);
+            }
+        }
+
+        return journeyLayers[kind];
+    }
 
     // The home-page filters (filters.js) broadcast the active filter; re-plot the
     // pins so the map always matches the filtered trip list. A null detail clears
@@ -78,43 +93,42 @@
         render();
     });
 
-    // The home-page "Cruises" toggle (filters.js) shows or hides the cruise routes
+    // The home-page per-kind toggles (filters.js) show or hide a kind's routes
     // independently of the trip filter.
-    let cruisesVisible = true;
-
-    document.addEventListener("cruises:toggle", (event) => {
-        cruisesVisible = event.detail !== false;
-        applyCruiseVisibility();
+    document.addEventListener("journeys:toggle", (event) => {
+        const detail = event.detail || {};
+        journeyVisible[detail.kind] = detail.show !== false;
+        applyJourneyVisibility();
     });
 
     // The marker file's URL is provided by the server (the photo store): a
     // root-relative /albums/markers.json for local disk, or a CDN/blob URL when
     // content is stored in Azure Blob. Fall back to the local path if absent.
     const markersUrl = mapElement.dataset.markersUrl || "/albums/markers.json";
-    const cruisesUrl = mapElement.dataset.cruisesUrl || "/albums/cruises.json";
+    const journeysUrl = mapElement.dataset.journeysUrl || "/albums/journeys.json";
 
     fetch(markersUrl)
         .then((response) => response.json())
         .then((markers) => {
             allMarkers = Array.isArray(markers) ? markers : [];
-            return fetchCruises();
+            return fetchJourneys();
         })
         .then(() => {
-            drawCruises();
+            drawJourneys();
             render();
         })
         .catch(() => map.setView([20, 0], 2));
 
-    // Cruise routes are best-effort: a missing or malformed cruises.json must never
+    // Journey routes are best-effort: a missing or malformed journeys file must never
     // stop the trip pins from rendering, so its failure resolves to no routes.
-    function fetchCruises() {
-        return fetch(cruisesUrl)
+    function fetchJourneys() {
+        return fetch(journeysUrl)
             .then((response) => response.json())
             .then((routes) => {
-                cruiseRoutes = Array.isArray(routes) ? routes : [];
+                journeyRoutes = Array.isArray(routes) ? routes : [];
             })
             .catch(() => {
-                cruiseRoutes = [];
+                journeyRoutes = [];
             });
     }
 
@@ -142,9 +156,9 @@
             points.push(position);
         });
 
-        // Keep the cruise routes in view alongside the (filtered) trip pins, so a
+        // Keep the journey routes in view alongside the (filtered) trip pins, so a
         // route is never scrolled off when the trips it links are the only anchors.
-        const boundsPoints = points.concat(cruisePoints);
+        const boundsPoints = points.concat(journeyPoints);
 
         if (boundsPoints.length > 0) {
             map.fitBounds(boundsPoints, { padding: [20, 20], maxZoom: 12 });
@@ -155,150 +169,162 @@
         }
     }
 
-    // Draws each cruise as a route line through its ports, a distinct pin per port,
-    // and a dotted connector from a port to each trip done from it (the trip's
-    // coordinates resolved by slug from the loaded markers, so a trip's location has
-    // a single source of truth). Runs once after both files load.
-    function drawCruises() {
-        cruiseLayer.clearLayers();
-        cruisePoints = [];
+    // Draws each journey as a route line through its waypoints, a distinct pin per
+    // waypoint, and a dotted connector from a waypoint to each trip done from it (the
+    // trip's coordinates resolved by slug from the loaded markers, so a trip's
+    // location has a single source of truth). Each journey is drawn into the layer for
+    // its kind so a kind can be toggled as a whole. Runs once after both files load.
+    function drawJourneys() {
+        Object.keys(journeyLayers).forEach((kind) => journeyLayers[kind].clearLayers());
+        journeyPoints = [];
 
         const bySlug = {};
         allMarkers.forEach((marker) => {
             bySlug[marker.Slug] = [marker.Lat, marker.Long];
         });
 
-        cruiseRoutes.forEach((cruise) => {
-            const ports = Array.isArray(cruise.Ports) ? cruise.Ports : [];
-            const color = cruise.Color || defaultRouteColor;
+        journeyRoutes.forEach((journey) => {
+            const waypoints = Array.isArray(journey.Waypoints) ? journey.Waypoints : [];
+            const color = journey.Color || defaultRouteColor;
+            const targetLayer = layerForKind(journey.Kind);
 
-            // A cruise with an uploaded route (a rough sea path computed offline) is
-            // drawn along that geometry; otherwise the line falls back to straight
-            // hops between the ports.
-            const line = Array.isArray(cruise.Geometry) && cruise.Geometry.length >= 2
-                ? cruise.Geometry
-                : ports.map((port) => [port.Lat, port.Long]);
+            // A journey with an uploaded route is drawn along that geometry — one
+            // polyline per segment, dashed for a travel hop (a flight/transit) and
+            // solid for a covered track. Without geometry the line falls back to
+            // straight hops between the waypoints.
+            const segments = Array.isArray(journey.Geometry) && journey.Geometry.length > 0
+                ? journey.Geometry
+                : [{ Points: waypoints.map((w) => [w.Lat, w.Long]), Travel: false }];
 
-            if (line.length >= 2) {
-                L.polyline(line, {
-                    className: "cruise-route",
-                    color: color,
-                    weight: 3,
-                    opacity: 0.85,
-                    // The route is a small, curated path — draw it faithfully rather
-                    // than let Leaflet simplify vertices away.
-                    smoothFactor: 0,
-                }).addTo(cruiseLayer);
-            }
+            segments.forEach((segment) => {
+                const points = Array.isArray(segment.Points) ? segment.Points : [];
 
-            // Dotted connectors run per stop, so every stop's trips reach the map
-            // even when two stops share a port.
-            ports.forEach((port) => {
-                const position = [port.Lat, port.Long];
-                cruisePoints.push(position);
+                if (points.length >= 2) {
+                    L.polyline(points, {
+                        className: "journey-route",
+                        color: color,
+                        weight: 3,
+                        opacity: 0.85,
+                        // The route is a small, curated path — draw it faithfully
+                        // rather than let Leaflet simplify vertices away.
+                        smoothFactor: 0,
+                        dashArray: segment.Travel ? "6 8" : null,
+                    }).addTo(targetLayer);
+                }
+            });
 
-                (port.Trips || []).forEach((slug) => {
+            // Dotted connectors run per waypoint, so every stop's trips reach the map
+            // even when two stops share a location.
+            waypoints.forEach((waypoint) => {
+                const position = [waypoint.Lat, waypoint.Long];
+                journeyPoints.push(position);
+
+                (waypoint.Trips || []).forEach((slug) => {
                     const tripPosition = bySlug[slug];
 
                     if (tripPosition) {
                         L.polyline([position, tripPosition], {
-                            className: "cruise-connector",
+                            className: "journey-connector",
                             color: color,
                             weight: 1.5,
                             opacity: 0.6,
                             dashArray: "3 6",
-                        }).addTo(cruiseLayer);
+                        }).addTo(targetLayer);
                     }
                 });
             });
 
-            // Port pins. A round-trip cruise can dock at the same port twice (embark
-            // and return), which would stack the later pin exactly over the first and
-            // hide it. Group the ports by coordinate and draw a single pin per
-            // location, badged with every visit's sequence number ("1 · 6"), so a
-            // shared start/end port reads as both.
+            // Waypoint pins. A round-trip journey can call at the same place twice
+            // (start and return), which would stack the later pin exactly over the
+            // first and hide it. Group the waypoints by coordinate and draw a single
+            // pin per location, badged with every visit's sequence number ("1 · 6"),
+            // so a shared start/end reads as both.
             const pinsByLocation = new Map();
-            ports.forEach((port, index) => {
-                const key = port.Lat + "," + port.Long;
+            waypoints.forEach((waypoint, index) => {
+                const key = waypoint.Lat + "," + waypoint.Long;
                 let group = pinsByLocation.get(key);
 
                 if (!group) {
-                    group = { position: [port.Lat, port.Long], visits: [] };
+                    group = { position: [waypoint.Lat, waypoint.Long], visits: [] };
                     pinsByLocation.set(key, group);
                 }
 
-                group.visits.push(Object.assign({ Seq: index + 1 }, port));
+                group.visits.push(Object.assign({ Seq: index + 1 }, waypoint));
             });
 
             pinsByLocation.forEach((group) => {
                 const label = group.visits.map((visit) => visit.Seq).join(" · ");
 
-                L.marker(group.position, { icon: portIconFor(label, color) })
-                    .bindTooltip(portTooltip(cruise, group.visits), { direction: "top", offset: [0, -11] })
+                L.marker(group.position, { icon: waypointIconFor(label, color) })
+                    .bindTooltip(waypointTooltip(journey, group.visits), { direction: "top", offset: [0, -11] })
                     .on("click", () => {
-                        window.location.href = "cruise/" + cruise.Slug;
+                        window.location.href = "journey/" + journey.Slug;
                     })
-                    .addTo(cruiseLayer);
+                    .addTo(targetLayer);
             });
         });
 
-        // Honour a toggle that may have fired before the layer was populated.
-        applyCruiseVisibility();
+        // Honour any toggles that fired before the layers were populated.
+        applyJourneyVisibility();
     }
 
-    // Adds or removes the whole cruise layer to match the "Cruises" toggle.
-    function applyCruiseVisibility() {
-        if (cruisesVisible) {
-            if (!map.hasLayer(cruiseLayer)) {
-                map.addLayer(cruiseLayer);
+    // Adds or removes each kind's layer to match its toggle.
+    function applyJourneyVisibility() {
+        Object.keys(journeyLayers).forEach((kind) => {
+            const layer = journeyLayers[kind];
+
+            if (journeyVisible[kind] !== false) {
+                if (!map.hasLayer(layer)) {
+                    map.addLayer(layer);
+                }
+            } else if (map.hasLayer(layer)) {
+                map.removeLayer(layer);
             }
-        } else if (map.hasLayer(cruiseLayer)) {
-            map.removeLayer(cruiseLayer);
-        }
+        });
     }
 
-    // The port hover tooltip: the port name over a muted date · arrive–depart ·
-    // cruise-name line, built as DOM text so a name can never inject markup. A
-    // port docked at more than once (a round-trip start/end) gets one line per
-    // visit, prefixed with its stop number, then the cruise name.
-    function portTooltip(cruise, visits) {
+    // The waypoint hover tooltip: the stop name over a muted date · arrive–depart ·
+    // journey-name line, built as DOM text so a name can never inject markup. A stop
+    // visited more than once (a round-trip start/end) gets one line per visit,
+    // prefixed with its stop number, then the journey name.
+    function waypointTooltip(journey, visits) {
         const tip = document.createElement("div");
         tip.className = "map-tip";
 
         const name = document.createElement("span");
         name.className = "map-tip__name";
-        name.textContent = visits[0].Name || cruise.Name;
+        name.textContent = visits[0].Name || journey.Name;
         tip.appendChild(name);
 
         if (visits.length === 1) {
-            const port = visits[0];
+            const waypoint = visits[0];
             const meta = [];
 
-            if (port.Date) {
-                meta.push(port.Date);
+            if (waypoint.Date) {
+                meta.push(waypoint.Date);
             }
 
-            const times = [port.Arrive, port.Depart].filter(Boolean).join("–");
+            const times = [waypoint.Arrive, waypoint.Depart].filter(Boolean).join("–");
             if (times) {
                 meta.push(times);
             }
 
-            if (cruise.Name) {
-                meta.push(cruise.Name);
+            if (journey.Name) {
+                meta.push(journey.Name);
             }
 
             if (meta.length > 0) {
                 appendMeta(tip, meta.join(" · "));
             }
         } else {
-            visits.forEach((port) => {
-                const meta = ["Stop " + port.Seq];
+            visits.forEach((waypoint) => {
+                const meta = ["Stop " + waypoint.Seq];
 
-                if (port.Date) {
-                    meta.push(port.Date);
+                if (waypoint.Date) {
+                    meta.push(waypoint.Date);
                 }
 
-                const times = [port.Arrive, port.Depart].filter(Boolean).join("–");
+                const times = [waypoint.Arrive, waypoint.Depart].filter(Boolean).join("–");
                 if (times) {
                     meta.push(times);
                 }
@@ -306,8 +332,8 @@
                 appendMeta(tip, meta.join(" · "));
             });
 
-            if (cruise.Name) {
-                appendMeta(tip, cruise.Name);
+            if (journey.Name) {
+                appendMeta(tip, journey.Name);
             }
         }
 

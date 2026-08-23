@@ -4,20 +4,20 @@ using System.Collections.Generic;
 namespace AalgTrips.Models
 {
     /// <summary>
-    /// A single day on a cruise's itinerary: either a port call or a day at sea. A
+    /// A single day on a journey's itinerary: either a port call or a day at sea. A
     /// stop with coordinates is a vertex on the route drawn on the home map; an
     /// at-sea ("Cruising") stop has none and appears in the itinerary only. Each
     /// stop can link the trip albums visited while docked there (the map draws a
     /// dotted connector out to each), and — from a later phase — carry its own
     /// photos for that day.
     /// </summary>
-    public class CruiseStop
+    public class JourneyStop
     {
         /// <summary>
         /// Gets or sets the stop's stable key — a filesystem-safe id, assigned once
         /// when the stop is first saved and preserved through every later edit (the
         /// itinerary editor round-trips it in a hidden field). It is the folder a
-        /// stop's photos live under (<c>cruises/{slug}/{Key}/</c>), so it must not
+        /// stop's photos live under (<c>journeys/{slug}/{Key}/</c>), so it must not
         /// change when the stop is reordered, renamed or re-dated. Absent from older
         /// metadata, where it deserializes to <c>null</c> until the next edit assigns
         /// one.
@@ -52,7 +52,7 @@ namespace AalgTrips.Models
         /// <summary>
         /// Gets or sets the stop's latitude. <c>null</c> for a day at sea; when set
         /// (together with <see cref="Longitude"/>) the stop is a vertex on the
-        /// cruise's map route.
+        /// journey's map route.
         /// </summary>
         public double? Latitude { get; set; }
 

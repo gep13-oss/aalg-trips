@@ -6,16 +6,16 @@ using Microsoft.Playwright;
 namespace AalgTrips.UITests
 {
     /// <summary>
-    /// End-to-end coverage for a cruise's uploaded route: an admin uploads a GeoJSON
-    /// line through the cruise's "Upload route map" modal, the server parses it (a
+    /// End-to-end coverage for a journey's uploaded route: an admin uploads a GeoJSON
+    /// line through the journey's "Upload route map" modal, the server parses it (a
     /// LineString, its [lon, lat] order flipped to [lat, long]) and stores it, and it
-    /// surfaces as the cruise's <c>Geometry</c> in the regenerated <c>cruises.json</c>
+    /// surfaces as the journey's <c>Geometry</c> in the regenerated <c>journeys.json</c>
     /// the map reads. Removing the route through the actions menu drops the geometry
-    /// again. The cruise is created and deleted within the test so the suite stays
+    /// again. The journey is created and deleted within the test so the suite stays
     /// self-contained.
     /// </summary>
     [TestFixture]
-    public class CruiseRouteUploadTests : UITestBase
+    public class JourneyRouteUploadTests : UITestBase
     {
         // A GeoJSON Feature LineString of three [longitude, latitude] positions.
         private static readonly byte[] RouteGeoJson = Encoding.UTF8.GetBytes(
@@ -26,12 +26,12 @@ namespace AalgTrips.UITests
         {
             await SignInAsync();
 
-            var title = "Route Cruise " + System.Guid.NewGuid().ToString("N");
+            var title = "Route Journey " + System.Guid.NewGuid().ToString("N");
             string? slug = null;
 
             try
             {
-                slug = await CreateCruiseAsync(title);
+                slug = await CreateJourneyAsync(title);
 
                 // Upload a route through the actions-menu "Upload route map" modal.
                 await Page.ClickAsync("summary.actions-menu__trigger");
@@ -45,52 +45,58 @@ namespace AalgTrips.UITests
                     Buffer = RouteGeoJson,
                 });
                 await Page.ClickAsync("#btnRouteUpload");
-                await Page.WaitForURLAsync(new Regex($"/cruise/{slug}/$"));
+                await Page.WaitForURLAsync(new Regex($"/journey/{slug}/$"));
 
-                // The route now surfaces as the cruise's geometry in cruises.json, with
-                // the GeoJSON [lon, lat] order flipped to the site's [lat, long].
-                var geometry = await CruiseGeometryAsync(slug);
+                // The route now surfaces as the journey's geometry in the journeys file:
+                // one solid segment (the uploaded LineString) whose points carry the
+                // GeoJSON [lon, lat] order flipped to the site's [lat, long].
+                var geometry = await JourneyGeometryAsync(slug);
                 Assert.That(geometry, Is.Not.Null);
-                Assert.That(geometry!.Value.GetArrayLength(), Is.EqualTo(3));
+                Assert.That(geometry!.Value.GetArrayLength(), Is.EqualTo(1), "one segment");
+
+                var segment = geometry.Value[0];
+                var points = segment.GetProperty("Points");
                 Assert.Multiple(() =>
                 {
-                    Assert.That(geometry.Value[0][0].GetDouble(), Is.EqualTo(41.9).Within(1e-9), "first latitude");
-                    Assert.That(geometry.Value[0][1].GetDouble(), Is.EqualTo(12.5).Within(1e-9), "first longitude");
+                    Assert.That(segment.GetProperty("Travel").GetBoolean(), Is.False, "an uploaded track is solid");
+                    Assert.That(points.GetArrayLength(), Is.EqualTo(3));
+                    Assert.That(points[0][0].GetDouble(), Is.EqualTo(41.9).Within(1e-9), "first latitude");
+                    Assert.That(points[0][1].GetDouble(), Is.EqualTo(12.5).Within(1e-9), "first longitude");
                 });
 
                 // Remove the route through the actions menu; the geometry is dropped.
                 await Page.ClickAsync("summary.actions-menu__trigger");
                 await Page.WaitForSelectorAsync(".actions-menu[open]");
                 await Page.ClickAsync("#deleteroute");
-                await Page.WaitForURLAsync(new Regex($"/cruise/{slug}/$"));
+                await Page.WaitForURLAsync(new Regex($"/journey/{slug}/$"));
 
-                var cleared = await CruiseGeometryAsync(slug);
+                var cleared = await JourneyGeometryAsync(slug);
                 Assert.That(cleared, Is.Null, "the route geometry is gone after removal");
             }
             finally
             {
                 if (slug != null)
                 {
-                    await DeleteCruiseAsync(slug);
+                    await DeleteJourneyAsync(slug);
                 }
             }
         }
 
-        // Reads the given cruise's Geometry out of the live cruises.json, or null when
-        // the cruise has no route (the property is serialized as JSON null).
-        private async Task<JsonElement?> CruiseGeometryAsync(string slug)
+        // Reads the given journey's Geometry out of the live journeys.json, or null when
+        // the journey has no route (the property is serialized as JSON null).
+        private async Task<JsonElement?> JourneyGeometryAsync(string slug)
         {
-            var response = await Page.APIRequest.GetAsync(BaseUrl + "/albums/cruises.json");
-            Assert.That(response.Ok, Is.True, "cruises.json should be served");
+            var response = await Page.APIRequest.GetAsync(BaseUrl + "/albums/journeys.json");
+            Assert.That(response.Ok, Is.True, "journeys.json should be served");
 
             var body = await response.TextAsync();
             using var document = JsonDocument.Parse(body);
 
-            foreach (var cruise in document.RootElement.EnumerateArray())
+            foreach (var journey in document.RootElement.EnumerateArray())
             {
-                if (cruise.GetProperty("Slug").GetString() == slug)
+                if (journey.GetProperty("Slug").GetString() == slug)
                 {
-                    var geometry = cruise.GetProperty("Geometry");
+                    var geometry = journey.GetProperty("Geometry");
                     return geometry.ValueKind == JsonValueKind.Null ? null : geometry.Clone();
                 }
             }

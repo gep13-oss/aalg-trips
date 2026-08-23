@@ -140,83 +140,84 @@ namespace AalgTrips.Models
         Task WriteMarkersAsync(IEnumerable<Marker> markers);
 
         /// <summary>
-        /// Lists the ids (folder-like names) of every cruise currently in the
-        /// store. Used to build the in-memory cruise catalogue at start-up.
+        /// Lists the ids (folder-like names) of every journey currently in the
+        /// store. Used to build the in-memory journey catalogue at start-up.
         /// </summary>
-        /// <returns>The cruise ids, in no particular order.</returns>
-        IReadOnlyList<string> ListCruiseIds();
+        /// <returns>The journey ids, in no particular order.</returns>
+        IReadOnlyList<string> ListJourneyIds();
 
         /// <summary>
-        /// Reads a cruise's metadata (its <c>cruise.json</c>) if present.
+        /// Reads a journey's metadata (its <c>journey.json</c>) if present.
         /// </summary>
-        /// <param name="cruiseId">The cruise to read.</param>
-        /// <returns>The metadata, or <c>null</c> when the cruise has none.</returns>
-        CruiseMetaData TryReadCruise(string cruiseId);
+        /// <param name="journeyId">The journey to read.</param>
+        /// <returns>The metadata, or <c>null</c> when the journey has none.</returns>
+        JourneyMetaData TryReadJourney(string journeyId);
 
         /// <summary>
-        /// Determines whether a cruise exists in the store.
+        /// Determines whether a journey exists in the store.
         /// </summary>
-        /// <param name="cruiseId">The cruise to check.</param>
-        /// <returns><c>true</c> when the cruise exists.</returns>
-        bool CruiseExists(string cruiseId);
+        /// <param name="journeyId">The journey to check.</param>
+        /// <returns><c>true</c> when the journey exists.</returns>
+        bool JourneyExists(string journeyId);
 
         /// <summary>
-        /// Writes (creates or replaces) a cruise's metadata.
+        /// Writes (creates or replaces) a journey's metadata.
         /// </summary>
-        /// <param name="cruiseId">The cruise to write.</param>
+        /// <param name="journeyId">The journey to write.</param>
         /// <param name="metadata">The metadata to store.</param>
         /// <returns>A task that completes when the metadata is stored.</returns>
-        Task WriteCruiseAsync(string cruiseId, CruiseMetaData metadata);
+        Task WriteJourneyAsync(string journeyId, JourneyMetaData metadata);
 
         /// <summary>
-        /// Deletes a cruise and all of its content (metadata and, later, its
+        /// Deletes a journey and all of its content (metadata and, later, its
         /// per-day photos).
         /// </summary>
-        /// <param name="cruiseId">The cruise to delete.</param>
-        /// <returns>A task that completes when the cruise is removed.</returns>
-        Task DeleteCruiseAsync(string cruiseId);
+        /// <param name="journeyId">The journey to delete.</param>
+        /// <returns>A task that completes when the journey is removed.</returns>
+        Task DeleteJourneyAsync(string journeyId);
 
         /// <summary>
-        /// Renames a cruise, moving all of its content from
-        /// <paramref name="oldCruiseId"/> to <paramref name="newCruiseId"/>. The
+        /// Renames a journey, moving all of its content from
+        /// <paramref name="oldJourneyId"/> to <paramref name="newJourneyId"/>. The
         /// caller guarantees the new id is free.
         /// </summary>
-        /// <param name="oldCruiseId">The cruise's current id.</param>
-        /// <param name="newCruiseId">The cruise's new id.</param>
-        /// <returns>A task that completes when the cruise has been moved.</returns>
-        Task RenameCruiseAsync(string oldCruiseId, string newCruiseId);
+        /// <param name="oldJourneyId">The journey's current id.</param>
+        /// <param name="newJourneyId">The journey's new id.</param>
+        /// <returns>A task that completes when the journey has been moved.</returns>
+        Task RenameJourneyAsync(string oldJourneyId, string newJourneyId);
 
         /// <summary>
-        /// Rewrites the map's cruise-route file from the supplied routes.
+        /// Rewrites the map's journey-route file from the supplied routes.
         /// </summary>
-        /// <param name="routes">One route per cruise.</param>
-        /// <returns>A task that completes when the cruise-route file is stored.</returns>
-        Task WriteCruisesAsync(IEnumerable<CruiseRoute> routes);
+        /// <param name="routes">One route per journey.</param>
+        /// <returns>A task that completes when the journey-route file is stored.</returns>
+        Task WriteJourneysAsync(IEnumerable<JourneyRoute> routes);
 
         /// <summary>
-        /// Reads a cruise's uploaded route geometry if present — an ordered list of
-        /// <c>[latitude, longitude]</c> pairs the map draws the cruise's line along
-        /// (a rough sea route computed offline and uploaded per cruise).
+        /// Reads a journey's uploaded route geometry if present — the ordered, styled
+        /// <see cref="RouteSegment"/>s the map draws the journey's line along (a track
+        /// computed offline and uploaded per journey). Tolerates a route uploaded before
+        /// segments (a flat point list) by returning it as one solid segment.
         /// </summary>
-        /// <param name="cruiseId">The cruise to read.</param>
-        /// <returns>The route points, or <c>null</c> when the cruise has no uploaded route.</returns>
-        IReadOnlyList<double[]> TryReadCruiseRoute(string cruiseId);
+        /// <param name="journeyId">The journey to read.</param>
+        /// <returns>The route segments, or <c>null</c> when the journey has no uploaded route.</returns>
+        IReadOnlyList<RouteSegment> TryReadJourneyRoute(string journeyId);
 
         /// <summary>
-        /// Saves (creates or replaces) a cruise's route geometry.
+        /// Saves (creates or replaces) a journey's route geometry.
         /// </summary>
-        /// <param name="cruiseId">The cruise to write.</param>
-        /// <param name="route">The ordered <c>[latitude, longitude]</c> pairs.</param>
+        /// <param name="journeyId">The journey to write.</param>
+        /// <param name="route">The ordered, styled route segments.</param>
         /// <returns>A task that completes when the route is stored.</returns>
-        Task SaveCruiseRouteAsync(string cruiseId, IEnumerable<double[]> route);
+        Task SaveJourneyRouteAsync(string journeyId, IEnumerable<RouteSegment> route);
 
         /// <summary>
-        /// Deletes a cruise's uploaded route geometry, reverting its map line to
-        /// straight port-to-port segments. A no-op when the cruise has no route.
+        /// Deletes a journey's uploaded route geometry, reverting its map line to
+        /// straight stop-to-stop segments. A no-op when the journey has no route.
         /// </summary>
-        /// <param name="cruiseId">The cruise whose route is removed.</param>
+        /// <param name="journeyId">The journey whose route is removed.</param>
         /// <returns>A task that completes when the route is removed.</returns>
-        Task DeleteCruiseRouteAsync(string cruiseId);
+        Task DeleteJourneyRouteAsync(string journeyId);
 
         /// <summary>
         /// Opens stored content by its store key (for example
@@ -254,92 +255,92 @@ namespace AalgTrips.Models
         string MarkersUrl();
 
         /// <summary>
-        /// Gets the public URL the map's cruise-route file is served from.
+        /// Gets the public URL the map's journey-route file is served from.
         /// </summary>
-        /// <returns>The absolute-or-root-relative URL of <c>cruises.json</c>.</returns>
-        string CruisesUrl();
+        /// <returns>The absolute-or-root-relative URL of <c>journeys.json</c>.</returns>
+        string JourneysUrl();
 
         /// <summary>
-        /// Lists the original photo file names saved for a cruise stop (not
+        /// Lists the original photo file names saved for a journey stop (not
         /// thumbnails).
         /// </summary>
-        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="journeyId">The journey the stop belongs to.</param>
         /// <param name="stopKey">The stop to enumerate.</param>
         /// <returns>The photo file names.</returns>
-        IReadOnlyList<string> ListCruisePhotoFileNames(string cruiseId, string stopKey);
+        IReadOnlyList<string> ListJourneyPhotoFileNames(string journeyId, string stopKey);
 
         /// <summary>
-        /// Lists the generated thumbnail file names for a cruise stop.
+        /// Lists the generated thumbnail file names for a journey stop.
         /// </summary>
-        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="journeyId">The journey the stop belongs to.</param>
         /// <param name="stopKey">The stop to enumerate.</param>
         /// <returns>The thumbnail file names (e.g. <c>beach-190x127.jpg</c>).</returns>
-        IReadOnlyList<string> ListCruiseThumbnailFileNames(string cruiseId, string stopKey);
+        IReadOnlyList<string> ListJourneyThumbnailFileNames(string journeyId, string stopKey);
 
         /// <summary>
-        /// Determines whether a photo exists for a cruise stop.
+        /// Determines whether a photo exists for a journey stop.
         /// </summary>
-        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="journeyId">The journey the stop belongs to.</param>
         /// <param name="stopKey">The stop to check.</param>
         /// <param name="fileName">The photo file name.</param>
         /// <returns><c>true</c> when the photo exists.</returns>
-        bool CruisePhotoExists(string cruiseId, string stopKey, string fileName);
+        bool JourneyPhotoExists(string journeyId, string stopKey, string fileName);
 
         /// <summary>
-        /// Saves an original photo's bytes into a cruise stop.
+        /// Saves an original photo's bytes into a journey stop.
         /// </summary>
-        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="journeyId">The journey the stop belongs to.</param>
         /// <param name="stopKey">The stop to save into.</param>
         /// <param name="fileName">The photo file name.</param>
         /// <param name="content">A readable stream over the photo bytes.</param>
         /// <returns>A task that completes when the photo is stored.</returns>
-        Task SaveCruisePhotoAsync(string cruiseId, string stopKey, string fileName, Stream content);
+        Task SaveJourneyPhotoAsync(string journeyId, string stopKey, string fileName, Stream content);
 
         /// <summary>
-        /// Opens a stored cruise-stop photo for reading (for example to derive
+        /// Opens a stored journey-stop photo for reading (for example to derive
         /// thumbnails from the saved original).
         /// </summary>
-        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="journeyId">The journey the stop belongs to.</param>
         /// <param name="stopKey">The stop to read from.</param>
         /// <param name="fileName">The photo file name.</param>
         /// <returns>A readable stream the caller must dispose.</returns>
-        Stream OpenCruisePhoto(string cruiseId, string stopKey, string fileName);
+        Stream OpenJourneyPhoto(string journeyId, string stopKey, string fileName);
 
         /// <summary>
-        /// Saves a generated thumbnail's bytes into a cruise stop.
+        /// Saves a generated thumbnail's bytes into a journey stop.
         /// </summary>
-        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="journeyId">The journey the stop belongs to.</param>
         /// <param name="stopKey">The stop to save into.</param>
         /// <param name="thumbnailFileName">The thumbnail file name.</param>
         /// <param name="content">A readable stream over the thumbnail bytes.</param>
         /// <returns>A task that completes when the thumbnail is stored.</returns>
-        Task SaveCruiseThumbnailAsync(string cruiseId, string stopKey, string thumbnailFileName, Stream content);
+        Task SaveJourneyThumbnailAsync(string journeyId, string stopKey, string thumbnailFileName, Stream content);
 
         /// <summary>
-        /// Deletes a cruise-stop photo and every thumbnail generated from it.
+        /// Deletes a journey-stop photo and every thumbnail generated from it.
         /// </summary>
-        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="journeyId">The journey the stop belongs to.</param>
         /// <param name="stopKey">The stop to delete from.</param>
         /// <param name="fileName">The photo file name.</param>
         /// <returns>A task that completes when the photo and its thumbnails are removed.</returns>
-        Task DeleteCruisePhotoAsync(string cruiseId, string stopKey, string fileName);
+        Task DeleteJourneyPhotoAsync(string journeyId, string stopKey, string fileName);
 
         /// <summary>
-        /// Gets the URL a cruise stop's original photo is served from.
+        /// Gets the URL a journey stop's original photo is served from.
         /// </summary>
-        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="journeyId">The journey the stop belongs to.</param>
         /// <param name="stopKey">The stop the photo belongs to.</param>
         /// <param name="fileName">The photo file name.</param>
         /// <returns>The root-relative URL of the photo.</returns>
-        string CruisePhotoUrl(string cruiseId, string stopKey, string fileName);
+        string JourneyPhotoUrl(string journeyId, string stopKey, string fileName);
 
         /// <summary>
-        /// Gets the URL a cruise stop's thumbnail is served from.
+        /// Gets the URL a journey stop's thumbnail is served from.
         /// </summary>
-        /// <param name="cruiseId">The cruise the stop belongs to.</param>
+        /// <param name="journeyId">The journey the stop belongs to.</param>
         /// <param name="stopKey">The stop the thumbnail belongs to.</param>
         /// <param name="thumbnailFileName">The thumbnail file name.</param>
         /// <returns>The absolute-or-root-relative URL of the thumbnail.</returns>
-        string CruiseThumbnailUrl(string cruiseId, string stopKey, string thumbnailFileName);
+        string JourneyThumbnailUrl(string journeyId, string stopKey, string thumbnailFileName);
     }
 }
