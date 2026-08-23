@@ -62,8 +62,15 @@
         });
     }
 
-    // Two waypoint pins at the same port sit this many pixels apart when fanned out.
-    const sharedPortPinSpacing = 30;
+    // Waypoint pins in one fanned-out cluster sit this many pixels apart.
+    const sharedPortPinSpacing = 34;
+
+    // Pins whose coordinates are within this (in degrees, ~1.5km) are treated as the
+    // same port and fanned apart. The same port is often stored at slightly different
+    // precision across journeys (e.g. Civitavecchia as 42.094,11.796 in one journey and
+    // 42.0924,11.7963 in another), so matching on exact coordinates misses them and lets
+    // one pin hide another; a small tolerance clusters them so every stop stays visible.
+    const sharedPortEpsilon = 0.02;
 
     // Geometry endpoints nearer than this (in degrees, ~11m) to a terminal waypoint are
     // treated as already meeting it; farther apart, the route is tied back to the pin.
@@ -71,6 +78,10 @@
 
     function samePoint(a, b) {
         return Math.abs(a[0] - b[0]) < routeTieEpsilon && Math.abs(a[1] - b[1]) < routeTieEpsilon;
+    }
+
+    function nearlySamePlace(a, b) {
+        return Math.abs(a[0] - b[0]) <= sharedPortEpsilon && Math.abs(a[1] - b[1]) <= sharedPortEpsilon;
     }
 
     const map = L.map(mapElement);
@@ -309,9 +320,8 @@
                 group.visits.push(Object.assign({ Seq: index + 1 }, waypoint));
             });
 
-            pinsByLocation.forEach((group, key) => {
+            pinsByLocation.forEach((group) => {
                 allPins.push({
-                    key: key,
                     position: group.position,
                     label: group.visits.map((visit) => visit.Seq).join(" · "),
                     color: color,
@@ -322,26 +332,26 @@
             });
         });
 
-        // Draw the collected pins. Pins that landed on the same coordinate belong to
-        // different journeys (a port two cruises both call at); fan them out so every
-        // journey's stop number stays visible instead of the last-drawn pin hiding the
-        // rest. A lone pin sits dead on its point.
-        const pinsByCoord = new Map();
+        // Draw the collected pins. Two journeys can call at the same port, and "the
+        // same port" is often stored at slightly different precision from one journey to
+        // the next, so matching on exact coordinates misses the pairing and lets one pin
+        // hide another. Cluster the pins by proximity instead, and fan every pin in a
+        // cluster apart so each journey's stop stays visible. A lone pin sits on its point.
+        const clusters = [];
         allPins.forEach((pin) => {
-            let list = pinsByCoord.get(pin.key);
+            const cluster = clusters.find((candidate) => nearlySamePlace(candidate.anchor, pin.position));
 
-            if (!list) {
-                list = [];
-                pinsByCoord.set(pin.key, list);
+            if (cluster) {
+                cluster.pins.push(pin);
+            } else {
+                clusters.push({ anchor: pin.position, pins: [pin] });
             }
-
-            list.push(pin);
         });
 
-        pinsByCoord.forEach((pins) => {
-            const count = pins.length;
+        clusters.forEach((cluster) => {
+            const count = cluster.pins.length;
 
-            pins.forEach((pin, index) => {
+            cluster.pins.forEach((pin, index) => {
                 const offsetX = count > 1 ? (index - (count - 1) / 2) * sharedPortPinSpacing : 0;
 
                 L.marker(pin.position, { icon: waypointIconFor(pin.label, pin.color, offsetX) })
