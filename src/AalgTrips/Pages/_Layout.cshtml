@@ -1,3 +1,4 @@
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 <!DOCTYPE html>
 <html lang="en" itemscope itemtype="http://schema.org/WebPage">
 <head prefix="og: http://ogp.me/ns#">
@@ -6,6 +7,7 @@
     <meta name="description" content="@ViewData["Description"]" />
     <meta name="keywords" content="@ViewData["Title"], photo, picture, gallery, images" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="carto-api-key" content="@Configuration["Map:CartoApiKey"]" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @RenderSection("head", required: false)
     <meta name="application-name" content="@ViewData["Title"]" />

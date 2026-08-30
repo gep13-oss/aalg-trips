@@ -65,6 +65,8 @@ else
 
 builder.Services.AddSingleton<AlbumCollection>();
 builder.Services.AddSingleton<JourneyCollection>();
+builder.Services.AddSingleton<CastleCollection>();
+builder.Services.AddSingleton<VisitedCastles>();
 builder.Services.AddSingleton<ImageProcessor>();
 builder.Services.AddSingleton<UserAuthenticator>();
 builder.Services.AddAuthentication(options =>

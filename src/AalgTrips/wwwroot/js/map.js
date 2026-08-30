@@ -87,12 +87,19 @@
     const map = L.map(mapElement);
 
     // CARTO's Voyager basemap: OpenStreetMap data, but labelled in English/Latin
-    // (endonym-only OSM standard tiles rendered "Danmark", "Deutschland", …). Still
-    // keyless, so no secret to configure; the CSP allows the cartocdn tile host.
+    // (endonym-only OSM standard tiles rendered "Danmark", "Deutschland", …). CARTO
+    // now watermarks unauthenticated ("API KEY REQUIRED") use of its basemaps, so a
+    // CARTO API key (from the <meta name="carto-api-key"> the layout renders from
+    // config) is appended when set; left blank the keyless tiles still draw
+    // (watermarked). The CSP allows the cartocdn tile host either way.
     // detectRetina is deliberately left off: on a hi-DPI screen it serves @2x tiles
     // that Leaflet draws at half size, which shrinks the place-name labels; standard
     // tiles keep the labels legible at the cost of a little crispness on retina.
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+    var cartoKeyMeta = document.querySelector("meta[name=\"carto-api-key\"]");
+    var cartoApiKey = cartoKeyMeta ? (cartoKeyMeta.content || "").trim() : "";
+    var tileUrl = "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        + (cartoApiKey ? "?key=" + encodeURIComponent(cartoApiKey) : "");
+    L.tileLayer(tileUrl, {
         subdomains: "abcd",
         maxZoom: 20,
         attribution: "&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a> contributors &copy; <a href=\"https://carto.com/attributions\">CARTO</a>",
