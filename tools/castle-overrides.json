@@ -1,0 +1,24 @@
+{
+  "Q2969293": {
+    "name": "Fyvie Castle",
+    "lat": 57.44345,
+    "lon": -2.39499,
+    "nation": "Scotland",
+    "admin": "Aberdeenshire",
+    "operator": "NTS",
+    "access": "MembersFree",
+    "website": "http://www.fyviecastle.com/",
+    "heritage": true
+  },
+  "Q42049": {
+    "name": "Balmoral Castle",
+    "lat": 57.0407,
+    "lon": -3.23016,
+    "nation": "Scotland",
+    "admin": "Aberdeenshire",
+    "operator": null,
+    "access": "Paid",
+    "website": "http://www.balmoralcastle.com/",
+    "heritage": true
+  }
+}

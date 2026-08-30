@@ -224,6 +224,29 @@ namespace AalgTrips.Models
         }
 
         /// <inheritdoc />
+        public IReadOnlyList<string> ReadVisitedCastles()
+        {
+            var blob = _container.GetBlobClient(PhotoStoreConventions.VisitedCastlesFileName);
+
+            if (!blob.Exists())
+            {
+                return Array.Empty<string>();
+            }
+
+            BlobDownloadResult download = blob.DownloadContent();
+            return JsonSerializer.Deserialize<List<string>>(download.Content.ToString()) ?? new List<string>();
+        }
+
+        /// <inheritdoc />
+        public async Task WriteVisitedCastlesAsync(IEnumerable<string> castleIds)
+        {
+            using var stream = new MemoryStream();
+            await JsonSerializer.SerializeAsync(stream, castleIds);
+            stream.Position = 0;
+            await _container.GetBlobClient(PhotoStoreConventions.VisitedCastlesFileName).UploadAsync(stream, overwrite: true);
+        }
+
+        /// <inheritdoc />
         public IReadOnlyList<string> ListJourneyIds()
         {
             var ids = new List<string>();

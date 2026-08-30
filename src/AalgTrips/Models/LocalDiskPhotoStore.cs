@@ -221,6 +221,28 @@ namespace AalgTrips.Models
         }
 
         /// <inheritdoc />
+        public IReadOnlyList<string> ReadVisitedCastles()
+        {
+            string path = Path.Combine(_root, PhotoStoreConventions.VisitedCastlesFileName);
+
+            if (!File.Exists(path))
+            {
+                return Array.Empty<string>();
+            }
+
+            return JsonSerializer.Deserialize<List<string>>(File.ReadAllText(path)) ?? new List<string>();
+        }
+
+        /// <inheritdoc />
+        public async Task WriteVisitedCastlesAsync(IEnumerable<string> castleIds)
+        {
+            Directory.CreateDirectory(_root);
+
+            using var stream = File.Create(Path.Combine(_root, PhotoStoreConventions.VisitedCastlesFileName));
+            await JsonSerializer.SerializeAsync(stream, castleIds);
+        }
+
+        /// <inheritdoc />
         public IReadOnlyList<string> ListJourneyIds()
         {
             string journeysRoot = JourneysRoot();

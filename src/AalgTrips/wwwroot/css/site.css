@@ -137,6 +137,15 @@ img {
     color: #fff;
 }
 
+/* Primary nav between the wordmark and the login control. */
+.site-nav {
+    display: flex;
+    align-items: center;
+    gap: 1.3rem;
+    margin-right: auto;
+    margin-left: 1.4rem;
+}
+
 /* ---- Footer ------------------------------------------------------------- */
 
 .site-footer {
@@ -1541,5 +1550,425 @@ dialog.modal--wide {
     .stop-field--name,
     .stop-field--trips {
         grid-column: 1 / -1;
+    }
+}
+
+/* ---- Castle Bingo -------------------------------------------------------- */
+
+.castle-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin: 0 0 1.75rem;
+}
+
+.castle-head__intro {
+    max-width: 34rem;
+}
+
+.castle-head__title {
+    margin: 0 0 .5rem;
+    font: 700 2.3rem/1.03 var(--font-display);
+    letter-spacing: -.025em;
+}
+
+.castle-head__lead {
+    margin: 0;
+    color: var(--muted);
+    font-size: 1.05rem;
+    text-wrap: pretty;
+}
+
+.castle-score {
+    flex: 0 0 auto;
+    min-width: 240px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+    padding: 1rem 1.25rem 1.1rem;
+}
+
+.castle-score__count {
+    display: flex;
+    align-items: baseline;
+    gap: .45ch;
+}
+
+.castle-score__done {
+    font: 700 2.6rem/1 var(--font-display);
+    color: var(--accent);
+}
+
+.castle-score__total {
+    font: 700 1.35rem/1 var(--font-display);
+    color: var(--muted);
+}
+
+.castle-score__label {
+    margin-left: auto;
+    font: 600 .68rem/1 var(--font-mono);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.castle-score__bar {
+    margin-top: .8rem;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--accent-tint);
+    overflow: hidden;
+}
+
+.castle-score__fill {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: var(--accent);
+}
+
+.castle-score__note {
+    margin: .55rem 0 0;
+    font: 600 .7rem/1.4 var(--font-mono);
+    letter-spacing: .03em;
+    color: var(--muted);
+}
+
+/* The castle filter bar reuses .filters / .chip; a thin divider groups the
+   country chips, the access chips and the toggles. */
+.castle-filters__sep {
+    width: 1px;
+    height: 22px;
+    background: var(--line);
+    margin: 0 .35rem;
+}
+
+.castle-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem 1.1rem;
+    margin: 0 0 1.5rem;
+    padding: .7rem .9rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+}
+
+.castle-legend__label {
+    font: 600 .64rem/1 var(--font-mono);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.castle-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: .45ch;
+    font: 600 .68rem/1.3 var(--font-mono);
+    letter-spacing: .02em;
+    color: var(--muted);
+}
+
+.castle-legend__dot {
+    width: .7em;
+    height: .7em;
+    border-radius: 50%;
+    background: var(--muted);
+}
+
+/* The full names behind the operator abbreviations, on their own line. */
+.castle-legend__glossary {
+    flex-basis: 100%;
+    margin: .2rem 0 0;
+    font: .74rem/1.5 var(--font-body);
+    color: var(--muted);
+}
+
+.castle-legend__glossary strong {
+    color: var(--accent-deep);
+    font-weight: 700;
+}
+
+/* Solid dots for the legend (the badge classes below use a tint fill, so the
+   compound selector overrides just the colour here). */
+.castle-legend__dot.access--free {
+    background: #4a8163;
+}
+
+.castle-legend__dot.access--members {
+    background: var(--accent);
+}
+
+.castle-legend__dot.access--paid {
+    background: #b0a692;
+}
+
+.castle-legend__dot.access--unknown {
+    background: #b6b4a6;
+}
+
+.castle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.2rem;
+}
+
+.castle-card[hidden] {
+    display: none;
+}
+
+.castle-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+    padding: 1rem 1.05rem 1.05rem;
+    border-radius: var(--radius);
+}
+
+.castle-card--visited {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow-sm);
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+
+.castle-card--visited:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: #c8c5b7;
+}
+
+.castle-card--todo {
+    background: var(--paper);
+    border: 1px dashed #cbc7b8;
+}
+
+.castle-card__mark {
+    position: absolute;
+    top: .75rem;
+    right: .85rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+}
+
+.castle-card__mark--done {
+    display: grid;
+    place-items: center;
+    background: #c07a1e;
+    color: #fff;
+    box-shadow: 0 1px 4px rgba(21, 39, 44, .35);
+}
+
+.castle-card__mark--done svg {
+    width: 15px;
+    height: 15px;
+}
+
+.castle-card__mark--todo {
+    border: 2px dashed #c2beb0;
+}
+
+.castle-card__name {
+    margin: 0;
+    padding-right: 2rem;
+    font: 700 1.28rem/1.15 var(--font-display);
+    letter-spacing: -.015em;
+}
+
+.castle-card--todo .castle-card__name {
+    color: #5f6d6f;
+}
+
+.castle-card__dossier {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .1rem .5rem;
+    font: .72rem/1.5 var(--font-mono);
+    letter-spacing: .02em;
+    color: var(--muted);
+}
+
+.castle-card--todo .castle-card__dossier {
+    color: #6b7673;
+}
+
+.castle-card__dist {
+    color: var(--accent-deep);
+}
+
+.castle-card--todo .castle-card__dist {
+    color: #6b7673;
+}
+
+.castle-card__dossier .sep {
+    opacity: .5;
+}
+
+/* Access badge — a small pill; the colour variants are shared with the legend
+   dots above. */
+.castle-card__access {
+    align-self: flex-start;
+    font: 600 .62rem/1 var(--font-mono);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: .34em .6em;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+}
+
+.access--members {
+    color: var(--accent-deep);
+    background: var(--accent-tint);
+    border-color: #cfe0dd;
+}
+
+.access--free {
+    color: #2f6b4f;
+    background: #e7f0e9;
+    border-color: #cfe3d6;
+}
+
+.access--paid {
+    color: #7a6f63;
+    background: #efece5;
+    border-color: #ded9cc;
+}
+
+.access--unknown {
+    color: #6b7673;
+    background: #eeece6;
+    border-color: #ddd9cd;
+}
+
+.castle-card__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem .9rem;
+    margin-top: .15rem;
+}
+
+.castle-card__albumlink {
+    font: 600 .8rem/1 var(--font-body);
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.castle-card__albumlink:hover {
+    color: var(--accent-deep);
+}
+
+.castle-card__albums-label {
+    font: 600 .62rem/1 var(--font-mono);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.castle-card__albumchip {
+    font: 600 .74rem/1 var(--font-body);
+    color: var(--accent);
+    background: var(--accent-tint);
+    border: 1px solid #cfe0dd;
+    border-radius: 999px;
+    padding: .34em .75em;
+    text-decoration: none;
+}
+
+.castle-card__albumchip:hover {
+    border-color: var(--accent);
+}
+
+.castle-card__todo-label {
+    font: 600 .66rem/1 var(--font-mono);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #6b7673;
+}
+
+.castle-card__website {
+    font: 600 .72rem/1 var(--font-mono);
+    letter-spacing: .03em;
+    color: var(--muted);
+    text-decoration: none;
+}
+
+.castle-card__website:hover {
+    color: var(--accent);
+}
+
+/* Admin-only per-castle controls (mark / unmark / add album); wrap onto their own
+   line under the album + website links. */
+.castle-card__admin {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    flex-basis: 100%;
+    margin-top: .15rem;
+}
+
+.castle-admin-btn {
+    font: 600 .68rem/1 var(--font-mono);
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    padding: .45em .7em;
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.castle-admin-btn:hover {
+    background: var(--accent-tint);
+    border-color: var(--muted);
+}
+
+.castle-admin-btn--mark {
+    color: var(--accent-deep);
+}
+
+.castle-admin-btn--unmark {
+    color: #b23b2e;
+}
+
+.castle-admin-btn:disabled {
+    opacity: .6;
+    cursor: progress;
+}
+
+.castle-empty {
+    margin: 1.5rem 0 0;
+    padding: 2.4rem 1.5rem;
+    text-align: center;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    font-size: 1.05rem;
+}
+
+.castle-more {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.8rem;
+}
+
+@media (max-width: 720px) {
+    .castle-head__title {
+        font-size: 1.7rem;
+    }
+
+    .site-nav {
+        gap: 1rem;
+        margin-left: 1rem;
     }
 }

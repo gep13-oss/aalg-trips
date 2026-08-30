@@ -194,6 +194,20 @@ namespace AalgTrips.Models
         Task WriteJourneysAsync(IEnumerable<JourneyRoute> routes);
 
         /// <summary>
+        /// Reads the set of castle ids that have been explicitly marked as visited on
+        /// the "Castle Bingo" page. Returns an empty list when none have been marked.
+        /// </summary>
+        /// <returns>The marked-visited castle ids.</returns>
+        IReadOnlyList<string> ReadVisitedCastles();
+
+        /// <summary>
+        /// Rewrites the set of explicitly-marked-visited castle ids.
+        /// </summary>
+        /// <param name="castleIds">The castle ids currently marked as visited.</param>
+        /// <returns>A task that completes when the set is stored.</returns>
+        Task WriteVisitedCastlesAsync(IEnumerable<string> castleIds);
+
+        /// <summary>
         /// Reads a journey's uploaded route geometry if present — the ordered, styled
         /// <see cref="RouteSegment"/>s the map draws the journey's line along (a track
         /// computed offline and uploaded per journey). Tolerates a route uploaded before

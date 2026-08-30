@@ -1,0 +1,223 @@
+@page
+@model CastlesModel
+@using System
+@using AalgTrips.Models
+@{
+    ViewData["Title"] = "Castle Bingo";
+    ViewData["Description"] = "Every castle in the UK, ordered by distance from Ellon — marked off as we visit them.";
+
+    int total = Model.VisitableTotal;
+    int done = Model.VisitableVisited;
+    int pct = total > 0 ? (int)Math.Round(100.0 * done / total) : 0;
+
+    // The access tiers actually present, in display order, so the filter only
+    // offers chips that match something.
+    var tierOrder = new[] { AccessTier.MembersFree, AccessTier.FreeEntry, AccessTier.Paid, AccessTier.Unknown };
+    var tiersPresent = tierOrder.Where(t => Model.Castles.Any(c => c.Access == t)).ToList();
+
+    (string Css, string Text) AccessInfo(Castle c)
+    {
+        switch (c.Access)
+        {
+            case AccessTier.MembersFree:
+                return ("access--members", $"{c.Operator} · Free to members");
+            case AccessTier.FreeEntry:
+                return ("access--free", "Free entry");
+            case AccessTier.Paid:
+                return ("access--paid", string.IsNullOrEmpty(c.Operator) ? "Private · pay on day" : $"{c.Operator} · pay on day");
+            default:
+                return ("access--unknown", "Access unknown");
+        }
+    }
+
+    string TierLabel(AccessTier t) => t switch
+    {
+        AccessTier.MembersFree => "Free to members",
+        AccessTier.FreeEntry => "Free entry",
+        AccessTier.Paid => "Pay",
+        _ => "Unknown",
+    };
+
+    // The operator badges are abbreviations; expand them for a hover title and the
+    // glossary line under the legend.
+    var bodies = new (string Abbr, string Full)[]
+    {
+        ("NTS", "National Trust for Scotland"),
+        ("HES", "Historic Environment Scotland"),
+        ("NT", "National Trust"),
+        ("EH", "English Heritage"),
+        ("Cadw", "Cadw — Wales’s historic environment service"),
+    };
+
+    string ExpandOperator(string op) => bodies.FirstOrDefault(b => b.Abbr == op).Full;
+
+    var invariant = System.Globalization.CultureInfo.InvariantCulture;
+}
+
+<section class="castle-head">
+    <div class="castle-head__intro">
+        <span class="eyebrow">Castle Bingo</span>
+        <h1 class="castle-head__title">Castles of the United Kingdom</h1>
+        <p class="castle-head__lead">Every castle in the UK, ordered by distance from home in Ellon, Aberdeenshire. Tick them off as we go.</p>
+    </div>
+    <div class="castle-score" aria-live="polite">
+        <div class="castle-score__count">
+            <span class="castle-score__done" id="scoreDone">@done</span>
+            <span class="castle-score__total">/ <span id="scoreTotal">@total</span></span>
+            <span class="castle-score__label">Visited</span>
+        </div>
+        <div class="castle-score__bar"><span class="castle-score__fill" id="scoreFill" style="width:@(pct)%"></span></div>
+        <p class="castle-score__note" id="scoreNote">@(total - done) still to visit</p>
+    </div>
+</section>
+
+<div class="filters castle-filters" id="castleFilters" hidden>
+    <span class="filters__label">Country</span>
+    @foreach (var nation in Model.Nations)
+    {
+        <label class="chip"><input type="checkbox" class="filter-nation" value="@nation" checked /><span>@nation</span></label>
+    }
+    <span class="castle-filters__sep" aria-hidden="true"></span>
+    <span class="filters__label">Access</span>
+    @foreach (var tier in tiersPresent)
+    {
+        <label class="chip"><input type="checkbox" class="filter-access" value="@tier" checked /><span>@TierLabel(tier)</span></label>
+    }
+    <span class="castle-filters__sep" aria-hidden="true"></span>
+    <label class="filters__exact"><input type="checkbox" class="filter-unvisited" /> Unvisited only</label>
+    <label class="filters__exact"><input type="checkbox" class="filter-ruins" /> Show ruins &amp; fragments</label>
+</div>
+
+<div class="castle-legend">
+    <span class="castle-legend__label">Access</span>
+    <span class="castle-legend__item"><span class="castle-legend__dot access--free"></span>Free entry</span>
+    <span class="castle-legend__item"><span class="castle-legend__dot access--members"></span>Free to members (NTS · HES · NT · EH · Cadw)</span>
+    <span class="castle-legend__item"><span class="castle-legend__dot access--paid"></span>Pay on the day</span>
+    <span class="castle-legend__item"><span class="castle-legend__dot access--unknown"></span>Unknown</span>
+    <p class="castle-legend__glossary">
+        <strong>NTS</strong> National Trust for Scotland · <strong>HES</strong> Historic Environment Scotland · <strong>NT</strong> National Trust · <strong>EH</strong> English Heritage · <strong>Cadw</strong> Wales’s historic environment service
+    </p>
+</div>
+
+<div class="section-head">
+    <h2 class="section-head__title">Nearest first</h2>
+    <span class="section-head__count" id="castleCount">@total castles</span>
+</div>
+
+<div class="castle-grid" id="castleGrid">
+    @foreach (var castle in Model.Castles)
+    {
+        var albums = Model.AlbumsFor(castle);
+        bool visited = Model.IsVisited(castle);
+        bool explicitlyMarked = Model.IsExplicitlyMarked(castle);
+        var access = AccessInfo(castle);
+        var bodyFull = ExpandOperator(castle.Operator);
+
+        <div class="castle-card @(visited ? "castle-card--visited" : "castle-card--todo")"
+             data-id="@castle.Id"
+             data-name="@castle.Name"
+             data-lat="@castle.Latitude.ToString(invariant)"
+             data-long="@castle.Longitude.ToString(invariant)"
+             data-nation="@castle.Nation"
+             data-access="@castle.Access"
+             data-visitable="@(castle.IsVisitable ? "true" : "false")"
+             data-visited="@(visited ? "true" : "false")">
+            @if (visited)
+            {
+                <span class="castle-card__mark castle-card__mark--done" role="img" aria-label="Visited">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 13l4 4L19 7" /></svg>
+                </span>
+            }
+            else
+            {
+                <span class="castle-card__mark castle-card__mark--todo" aria-hidden="true"></span>
+            }
+            <h3 class="castle-card__name">@castle.Name</h3>
+            <p class="castle-card__dossier">
+                <span class="castle-card__dist">@castle.DistanceLabel</span>
+                @if (!string.IsNullOrEmpty(castle.Admin))
+                {
+                    <span class="sep">·</span><span>@castle.Admin</span>
+                }
+                @if (!string.IsNullOrEmpty(castle.Nation))
+                {
+                    <span class="sep">·</span><span>@castle.Nation</span>
+                }
+            </p>
+            <span class="castle-card__access @access.Css" title="@(bodyFull ?? access.Text)">@access.Text</span>
+            <div class="castle-card__foot">
+                @if (albums.Count == 1)
+                {
+                    <a class="castle-card__albumlink" href="/album/@albums[0].UrlName/">View album <span aria-hidden="true">→</span></a>
+                }
+                else if (albums.Count > 1)
+                {
+                    <span class="castle-card__albums-label">Albums</span>
+                    foreach (var album in albums)
+                    {
+                        <a class="castle-card__albumchip" href="/album/@album.UrlName/">@album.Visited.Year</a>
+                    }
+                }
+                else if (!visited)
+                {
+                    <span class="castle-card__todo-label">Not visited yet</span>
+                }
+                @if (!string.IsNullOrEmpty(castle.Website))
+                {
+                    <a class="castle-card__website" href="@castle.Website" target="_blank" rel="noopener noreferrer nofollow">Website <span aria-hidden="true">↗</span></a>
+                }
+                <span class="castle-card__admin" if-authorized>
+                    @if (explicitlyMarked)
+                    {
+                        <button type="button" class="castle-admin-btn castle-admin-btn--unmark" data-castle-action="unmark" data-castle-id="@castle.Id">Unmark</button>
+                    }
+                    else if (!visited)
+                    {
+                        <button type="button" class="castle-admin-btn castle-admin-btn--mark" data-castle-action="mark" data-castle-id="@castle.Id">Mark visited</button>
+                    }
+                    @if (albums.Count == 0)
+                    {
+                        <button type="button" class="castle-admin-btn" data-castle-create>+ Album</button>
+                    }
+                </span>
+            </div>
+        </div>
+    }
+</div>
+
+<p class="castle-empty" id="castleEmpty" hidden>No castles match your filters.</p>
+
+<div class="castle-more" id="castleMore" hidden>
+    <button type="button" class="btn" id="castleMoreBtn">Show more castles</button>
+</div>
+
+<dialog id="castleAlbumDialog" class="modal" aria-label="New album for a castle" if-authorized>
+    <form class="trip-form modal__form" method="post" action="~/album/new/create/">
+        <h2 class="trip-form__title" id="castleAlbumTitle">New album</h2>
+        <button type="button" class="modal__close" data-close-dialog aria-label="Close">&times;</button>
+        <p class="trip-form__hint">The place, coordinates and castle flag are filled in from the castle — just add the date and a note.</p>
+
+        <input type="hidden" name="name" id="castleAlbumName" />
+        <input type="hidden" name="latitude" id="castleAlbumLat" />
+        <input type="hidden" name="longitude" id="castleAlbumLong" />
+        <input type="hidden" name="castleVisited" value="true" />
+
+        <div class="field field--date">
+            <label for="castleAlbumDate">Date visited</label>
+            <input type="date" name="visited" id="castleAlbumDate" />
+        </div>
+        <div class="field field--notes">
+            <label for="castleAlbumDesc">Notes</label>
+            <textarea name="description" id="castleAlbumDesc" rows="3" placeholder="A few lines about the visit…"></textarea>
+        </div>
+        <div class="field field--actions">
+            <button type="button" class="btn btn--ghost" data-close-dialog>Cancel</button>
+            <input type="submit" class="btn btn--primary" value="Create album" data-progress="Creating…" />
+        </div>
+    </form>
+</dialog>
+
+@section scripts {
+    <script src="~/js/castles.js" asp-append-version="true"></script>
+    <script if-authorized src="~/js/castle-admin.js" asp-append-version="true"></script>
+}

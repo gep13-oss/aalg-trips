@@ -44,6 +44,13 @@ namespace AalgTrips.Models
         /// <summary>The file name the map's journey-route list is stored as (at the top level).</summary>
         public const string JourneysFileName = "journeys.json";
 
+        /// <summary>
+        /// The file name the set of explicitly-marked-visited castle ids is stored as
+        /// (at the top level). Drives the "Castle Bingo" page's tick marks; absent
+        /// until the first castle is marked.
+        /// </summary>
+        public const string VisitedCastlesFileName = "castles-visited.json";
+
         private static readonly string[] _imageExtensions = { ".jpg", ".jpeg", ".gif", ".png" };
         private static readonly Regex _thumbnailSuffix = new Regex(@"-[0-9]+x[0-9]+$", RegexOptions.Compiled);
 
