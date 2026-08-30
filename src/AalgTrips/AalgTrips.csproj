@@ -27,13 +27,13 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="SkiaSharp" Version="2.88.9" />
+        <PackageReference Include="SkiaSharp" Version="4.151.1" />
         <!-- The SkiaSharp package only ships Windows/macOS native binaries. This
              brings the Linux libSkiaSharp.so so thumbnail generation works on the
              Linux CI runner and the Linux App Service. The NoDependencies variant
              needs no system fontconfig (we only decode/resize images, no text),
              which suits the minimal App Service host. -->
-        <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.9" />
+        <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.151.1" />
         <PackageReference Include="Azure.Storage.Blobs" Version="12.29.1" />
     </ItemGroup>
 
