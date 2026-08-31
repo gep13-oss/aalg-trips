@@ -166,6 +166,7 @@
                 {
                     <a class="castle-card__website" href="@castle.Website" target="_blank" rel="noopener noreferrer nofollow">Website <span aria-hidden="true">↗</span></a>
                 }
+                <a class="castle-card__map" href="https://www.google.com/maps/search/?api=1&amp;query=@castle.Latitude.ToString(invariant),@castle.Longitude.ToString(invariant)" target="_blank" rel="noopener noreferrer">Map <span aria-hidden="true">↗</span></a>
                 <span class="castle-card__admin" if-authorized>
                     @if (explicitlyMarked)
                     {

@@ -129,6 +129,19 @@ namespace AalgTrips.UITests
             await Expect(Page.Locator("#castleAlbumDialog input[name='castleVisited']")).ToHaveValueAsync("true");
         }
 
+        [Test]
+        public async Task A_castle_tile_links_to_Google_Maps_at_its_coordinates()
+        {
+            await SignInAsync();
+            await Page.GotoAsync(BaseUrl + "/castles");
+
+            var mapLink = Card("Castle Fraser").Locator(".castle-card__map");
+
+            await Expect(mapLink).ToHaveAttributeAsync(
+                "href",
+                new Regex(@"google\.com/maps/search/\?api=1&query=-?\d+\.\d+,-?\d+\.\d+"));
+        }
+
         private Microsoft.Playwright.ILocator Card(string castleName)
         {
             return Page.Locator(".castle-card").Filter(new() { HasText = castleName });

@@ -1894,14 +1894,16 @@ dialog.modal--wide {
     color: #6b7673;
 }
 
-.castle-card__website {
+.castle-card__website,
+.castle-card__map {
     font: 600 .72rem/1 var(--font-mono);
     letter-spacing: .03em;
     color: var(--muted);
     text-decoration: none;
 }
 
-.castle-card__website:hover {
+.castle-card__website:hover,
+.castle-card__map:hover {
     color: var(--accent);
 }
 
